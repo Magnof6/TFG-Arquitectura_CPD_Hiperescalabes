@@ -1,0 +1,74 @@
+Día 24/03/2026
+Eventos Para el programa V1
+
+class Evento:
+    id: str
+    tipo: str
+    tiempo_s: float
+    duracion_s: float
+    objetivo_id: str
+    descripcion: str
+    severidad: int
+
+
+class FalloComponente(Evento):
+    causa: str
+    nuevo_estado: str
+
+
+class RecuperacionComponente(Evento):
+    estado_final: str
+
+
+class CambioEstado(Evento):
+    estado_anterior: str
+    estado_nuevo: str
+
+
+class ConmutacionFuente(Evento):
+    fuente_origen: str
+    fuente_destino: str
+    tiempo_transferencia_ms: float
+    exito: bool
+
+
+class Sobrecarga(Evento):
+    carga_kw: float
+    capacidad_disponible_kw: float
+    porcentaje_sobrecarga: float
+
+
+class PerdidaSuministro(Evento):
+    nivel: str
+    carga_afectada_kw: float
+
+
+class RestablecimientoSuministro(Evento):
+    nivel: str
+    carga_recuperada_kw: float
+
+
+class EntradaReserva(Evento):
+    componente_reserva_id: str
+    componente_sustituido_id: str
+
+
+class SalidaReserva(Evento):
+    componente_reserva_id: str
+    motivo: str
+
+
+class AgotamientoBateria(Evento):
+    ups_id: str
+    autonomia_restante_min: float
+
+
+class ArranqueGenerador(Evento):
+    generador_id: str
+    tiempo_arranque_s: float
+    arranque_exitoso: bool
+
+
+class ParadaGenerador(Evento):
+    generador_id: str
+    motivo: str
