@@ -1,0 +1,132 @@
+Dia 24/03/2026
+V1 de atributos de objetos
+
+class ObjetoElectrico: --> será común para todos (los atributos)
+    id: str
+    nombre: str
+    tipo: str
+    estado: str                  # activo, reserva, fallado, mantenimiento, desconectado
+    criticidad: int              # 1-5 por ejemplo
+    tiempo_recuperacion_s: float
+    es_reserva: bool
+
+class RedElectrica(ObjetoElectrico):
+    potencia_disponible_mw: float
+    tension_kv: float
+    numero_lineas: int
+    nodo_origen: str
+
+class EMF(ObjetoElectrico):
+    potencia_nominal_mva: float
+    tension_kv: float
+    lineas_entrantes: int
+    lineas_salientes: int
+    posiciones_linea: int
+    doble_circuito: bool
+    proteccion_87L: bool
+
+class Subestacion(ObjetoElectrico):
+    potencia_nominal_mva: float
+    tension_entrada_kv: float
+    tension_salida_kv: float
+    lineas_entrantes: int
+    lineas_salientes: int
+    num_transformadores: int
+    esquema_barras: str
+
+class LineaElectrica(ObjetoElectrico):
+    tension_kv: float
+    capacidad_mva: float
+    num_circuitos: int
+    origen: str
+    destino: str
+    longitud_m: float
+
+class Transformador(ObjetoElectrico):
+    subtipo: str                 # IT, mecánico, landlord, entrante, saliente
+    potencia_nominal_kva: float
+    tension_entrada_kv: float
+    tension_salida_kv: float
+    impedancia_pct: float
+    grupo_vectorial: str
+    refrigeracion: str
+
+class Generador(ObjetoElectrico):
+    subtipo: str                 # IT, mecánico
+    potencia_nominal_kva: float
+    potencia_nominal_kwe: float
+    tension_salida_kv: float
+    frecuencia_hz: float
+    tiempo_arranque_s: float
+    consumo_l_h: float
+    autonomia_h: float
+    combustible_tipo: str
+
+class UPS(ObjetoElectrico):
+    subtipo: str                 # IT, mecánico, landlord
+    tecnologia: str              # doble conversión, VFI...
+    potencia_nominal_kva: float
+    potencia_nominal_kw: float
+    eficiencia_pct: float
+    autonomia_min_eol: float
+    vida_util_anios: float
+    tiempo_conmutacion_ms: float
+    bateria_tipo: str
+    bms_monitorizado: bool
+
+class BateriaUPS(ObjetoElectrico):
+    tecnologia: str              # ion-litio
+    autonomia_min_eol: float
+    vida_util_anios: float
+    temperatura_operacion_c: float
+    bms_activo: bool
+
+class RMU(ObjetoElectrico):
+    tension_kv: float
+    corriente_nominal_a: float
+    bloque_asociado: str
+
+class STS(ObjetoElectrico):
+    corriente_nominal_a: float
+    tiempo_transferencia_ms: float
+    fuente_preferida: str
+    fuente_respaldo: str
+
+class CuadroElectrico(ObjetoElectrico):
+    subtipo: str                 # MT, BT, input switchboard
+    tension_kv: float
+    corriente_nominal_a: float
+    corriente_cortocircuito_ka: float
+    forma_segregacion: str
+
+class Busbar(ObjetoElectrico):
+    tension_v: float
+    corriente_nominal_a: float
+    capacidad_kw: float
+
+class CargaIT:
+    id: str
+    nombre: str
+    tipo: str                    # fila, bloque IT, carga crítica
+    estado: str                  # alimentado, degradado, sin_alimentacion
+    demanda_kw: float
+    prioridad: int
+    alimentacion_preferida: str
+    alimentacion_respaldo: str
+
+class BloqueElectrico:
+    id: str
+    nombre: str
+    subtipo: str                 # IT, mecánico, landlord
+    estado: str
+    capacidad_kw: float
+    es_reserva: bool
+    criticidad: int
+    componentes: list[str]
+    cargas_asociadas: list[str]
+
+
+
+
+
+
