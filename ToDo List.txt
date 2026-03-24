@@ -1,0 +1,35 @@
+Definir Objetos --> Hecho día 24/03/26
+Definir Eventos --> Hecho día 24/03/26
+Definir Reglas
+  Ejemplos orientativos:
+    -Cuando un componente se considera operativo
+    -Cuando una carga IT está alimentada
+    -Cuándo entra el '+1'
+    -Qué pasa si falla una UPS
+    -Qué pasa si falla la red y arrancan los generadores
+    -Qué pasa si la capacidad restante no cubre la demanda
+    -Qué prioridad tienen las fuentes: red > UPS > Generador
+Definir Topología del sistema
+  -Qué componentes alimentan a cuales
+  -Qué elementos son redundantes
+  -Que bloques forman un  N+1
+  -¿Añadir a los objetos origen/destino?
+Diseñar motor de simulación
+Definir algoritmo principal
+  -Cargar componentes
+  -Cargar conexiones
+  -Cargar eventos
+  -Ordenar eventos por tiempo
+  -Ejecutar cada evento
+  -Recalcular el estadodel sistema
+  -Comprobar si la carga sigue alimentada
+  -Registrar resultados
+Definir salidas y métricas
+  -Carga total servida
+  -Carga perdida
+  -Capacidad disponible
+  -tiempo sin servicio
+  -nº de componentes fallados
+  -uso de reserva
+  - estado final del sistema (operativo, degradado, fallido)
+Elegir escenarios de prueba
