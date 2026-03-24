@@ -1,6 +1,6 @@
 Definir Objetos --> Hecho día 24/03/26
 Definir Eventos --> Hecho día 24/03/26
-Definir Reglas
+Definir Reglas --> Hecho día 24/03/26
   Ejemplos orientativos:
     -Cuando un componente se considera operativo
     -Cuando una carga IT está alimentada
