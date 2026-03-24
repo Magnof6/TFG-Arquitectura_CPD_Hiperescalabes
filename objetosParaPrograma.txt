@@ -125,6 +125,30 @@ class BloqueElectrico:
     componentes: list[str]
     cargas_asociadas: list[str]
 
+class SalaIT:
+    id: str
+    nombre: str
+    estado: str
+    potencia_objetivo_kw: float
+    potencia_actual_kw: float
+    numero_zonas: int
+    bloque_electrico_principal: str
+    bloque_electrico_respaldo: str
+    criticidad: int
+
+class ZonaIT:
+    id: str
+    nombre: str
+    tipo: str
+    estado: str
+    demanda_kw: float
+    prioridad: int
+    sala_it_id: str
+    alimentacion_preferida: str
+    alimentacion_respaldo: str
+
+
+
 
 
 
