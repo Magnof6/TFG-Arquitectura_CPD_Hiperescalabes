@@ -9,7 +9,7 @@ Definir Reglas --> Hecho día 24/03/26
     -Qué pasa si falla la red y arrancan los generadores
     -Qué pasa si la capacidad restante no cubre la demanda
     -Qué prioridad tienen las fuentes: red > UPS > Generador
-Definir Topología del sistema
+Definir Topología del sistema --> Hecho 26/03/2026
   -Qué componentes alimentan a cuales
   -Qué elementos son redundantes
   -Que bloques forman un  N+1
