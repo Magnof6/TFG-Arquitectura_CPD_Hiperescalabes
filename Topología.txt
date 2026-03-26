@@ -1,0 +1,59 @@
+Topología
+Dia 26/03/26
+
+Red eléctrica
+   ↓
+Subestación primaria (400/66 kV)
+   ↓
+Subestación secundaria (66/11 kV)
+   ↓
+Galería MT (11 kV)
+   ↓
+Cuadros de media tensión (dentro del edificio)
+   ↓
+RMU
+   ↓
+Transformador
+   ↓
+Bloque eléctrico
+   ↓
+UPS
+   ↓
+STS
+   ↓
+Busbar
+   ↓
+Sala IT
+   ↓
+Carga IT
+
+
+Conexion("red", "subestacion_primaria")
+Conexion("subestacion_primaria", "subestacion_secundaria")
+Conexion("subestacion_secundaria", "cuadro_mt")
+
+# anillos MT
+Conexion("cuadro_mt", "rmu_1")
+Conexion("cuadro_mt", "rmu_2")
+...
+
+# transformación
+Conexion("rmu_1", "trafo_1")
+
+# bloque
+Conexion("trafo_1", "bloque_1")
+
+# UPS
+Conexion("bloque_1", "ups_1")
+
+# STS
+Conexion("ups_1", "sts_1")
+
+# distribución
+Conexion("sts_1", "busbar_1")
+Conexion("busbar_1", "salaIT_1")
+Conexion("salaIT_1", "carga_1")
+
+Generadores en paralelo
+Conexion("generador_1", "cuadro_bt")
+Conexion("generador_2", "cuadro_bt")
