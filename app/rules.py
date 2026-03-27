@@ -594,3 +594,33 @@ class MotorReglas:
                 carga_recuperada_kw=0.0,
             )
         ]
+
+
+    # ---------------------------------------------------------------------
+    # 7. ESTADO GLOBAL
+    # ---------------------------------------------------------------------
+
+    def hay_perdida_carga_critica(self, estado) -> bool:
+        cargas = list(getattr(estado, "cargas_it", {}).values()) + list(getattr(estado, "zonas_it", {}).values())
+        for carga in cargas:
+            if getattr(carga, "prioridad", 0) >= 4 and carga.estado == "sin_alimentacion":
+                return True
+        return False
+
+    def hay_perdida_redundancia(self, estado) -> bool:
+        for grupo in estado.grupos_redundancia.values():
+            if self.grupo_esta_degradado(grupo, estado):
+                return True
+        return False
+
+    def hay_capacidad_comprometida(self, estado) -> bool:
+        demanda_total = self.demanda_total_kw(estado)
+        capacidad_total = self.capacidad_total_activa_kw(estado)
+        return capacidad_total < demanda_total
+
+    def determinar_estado_global(self, estado) -> str:
+        if self.hay_perdida_carga_critica(estado):
+            return "fallado"
+        if self.hay_perdida_redundancia(estado) or self.hay_capacidad_comprometida(estado):
+            return "degradado"
+        return "operativo"
