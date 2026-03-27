@@ -105,6 +105,7 @@ class ProcesadorEventos:
                 grupo=grupo,
                 componente_fallido_id= componente.id,
                 tiempo_s= evento.tiempo_s,
+                estado= estado
             )
             if evento_reserva is not None:
                 derivados.append(evento_reserva)
