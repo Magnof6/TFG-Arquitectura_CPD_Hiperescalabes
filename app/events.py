@@ -181,3 +181,32 @@ class ProcesadorEventos:
         return []
 
 
+    # -------------------------------------------------------------------------
+    # Eventos de fuente / suministro
+    # -------------------------------------------------------------------------
+
+    def _procesar_conmutation_fuente(self, evento: models.ConmutacionFuente, estado) -> List[models.Evento]:
+        derivados: List[models.Evento] = []
+
+        if not evento.exito:
+            derivados.extend(
+                self.motor_reglas.generar_eventos_fallo_conmutación(
+                    evento= evento,
+                    estado= estado
+                )
+            )
+        return derivados
+
+    def _procesar_sobrecarga(self, evento: models.Sobrecarga, estado) -> List[models.Evento]:
+        return self.motor_reglas.generar_eventos_por_sobrecarga(
+            evento= evento,
+            estado= estado
+        )
+    
+    def _procesar_perdida_suministro(self, evento: models.PerdidaSuministro, estado) -> List[models.Evento]:
+        return []
+    
+    def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
+        return []
+    
+    
