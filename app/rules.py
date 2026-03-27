@@ -242,3 +242,87 @@ class MotorReglas:
     def reevaluar_todas_las_salas(self, estado) -> None:
         for sala in estado.salas_it.values():
             self.reevaluar_sala(sala, estado)
+
+    # ---------------------------------------------------------------------
+    # 4. REDUNDANCIA N+1
+    # ---------------------------------------------------------------------
+
+    def buscar_grupo_de_componente(self, componente_id: str, estado):
+        for grupo in estado.grupos_redundancia.values():
+            if componente_id in grupo.componentes_ids:
+                return grupo
+        return None
+
+    def obtener_componentes_grupo(self, grupo, estado) -> List[object]:
+        return [
+            estado.componentes[cid]
+            for cid in grupo.componentes_ids
+            if cid in estado.componentes
+        ]
+
+    def grupo_capacidad_activa_kw(self, grupo, estado) -> float:
+        total = 0.0
+        for comp in self.obtener_componentes_grupo(grupo, estado):
+            if comp.estado == "activo":
+                total += self.obtener_capacidad_componente_kw(comp)
+        return total
+
+    def grupo_tiene_reserva_disponible(self, grupo, estado) -> bool:
+        for comp in self.obtener_componentes_grupo(grupo, estado):
+            if comp.estado == "reserva":
+                return True
+        return False
+
+    def grupo_esta_degradado(self, grupo, estado) -> bool:
+        activos = sum(1 for comp in self.obtener_componentes_grupo(grupo, estado) if comp.estado == "activo")
+        return activos <= grupo.n_requerido
+
+    def generar_evento_entrada_reserva(self, grupo, componente_fallado_id: str, tiempo_s: float):
+        """
+        Si un grupo N+1 pierde un activo y existe reserva, genera el evento de entrada.
+        """
+        reserva = None
+        componentes = getattr(grupo, "_componentes_cache", None)
+
+        # Este método se invoca desde events.py, así que el estado no está aquí;
+        # la reserva se buscará externamente si se quiere mayor precisión.
+        # En V1 lo resolvemos desde el propio grupo si ya se conoce.
+        if componentes:
+            for comp in componentes:
+                if comp.estado == "reserva":
+                    reserva = comp
+                    break
+
+        return None  # esta versión se resolverá con el método extendido de abajo
+
+    def generar_evento_entrada_reserva_desde_estado(self, grupo, componente_fallado_id: str, tiempo_s: float, estado):
+        for comp in self.obtener_componentes_grupo(grupo, estado):
+            if comp.estado == "reserva":
+                return EntradaReserva(
+                    id=f"entrada_reserva_{grupo.id}_{comp.id}_{int(tiempo_s)}",
+                    tipo="EntradaReserva",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=grupo.id,
+                    objetivo_tipo=grupo.tipo_componente,
+                    descripcion=f"Entrada de reserva {comp.id} por fallo de {componente_fallado_id}",
+                    severidad=2,
+                    componente_reserva_id=comp.id,
+                    componente_sustituido_id=componente_fallado_id,
+                )
+        return None
+
+    def reevaluar_grupos_redundancia(self, estado):
+        eventos = []
+        for grupo in estado.grupos_redundancia.values():
+            capacidad = self.grupo_capacidad_activa_kw(grupo, estado)
+            if capacidad < grupo.capacidad_necesaria_kw and self.grupo_tiene_reserva_disponible(grupo, estado):
+                evento = self.generar_evento_entrada_reserva_desde_estado(
+                    grupo=grupo,
+                    componente_fallado_id="desconocido",
+                    tiempo_s=estado.tiempo_actual_s,
+                    estado=estado,
+                )
+                if evento:
+                    eventos.append(evento)
+        return eventos
