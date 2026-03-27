@@ -209,4 +209,107 @@ class ProcesadorEventos:
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
         return []
     
+    # -------------------------------------------------------------------------
+    # Eventos de redundancia
+    # -------------------------------------------------------------------------
+
+    def _procesar_entrada_reserva(self, evento: models.EntradaReserva, estado) -> List[models.Evento]:
+        comp_reserva = estado.componentes.get(evento.componente_reserva_id)
+        if comp_reserva is not None:
+            comp_reserva.estado = "activo"
+        return []
+    def _procesar_salida_reserva(self, evento: models.SalidaReserva, estado) -> List[models.Evento]:
+        comp_reserva = estado.componentes.get(evento.componente_reserva_id)
+        if comp_reserva is not None:
+            comp_reserva.estado = "reserva"
+        return []
     
+    # -------------------------------------------------------------------------
+    # Eventos UPS / bateria
+    # -------------------------------------------------------------------------
+
+    def _procesar_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado) -> List[models.Evento]:
+        return self.motor_reglas.generar_eventos_agotamiento_bateria(
+            evento= evento,
+            estado= estado
+        )
+    
+    # -------------------------------------------------------------------------
+    # Eventos generadores
+    # -------------------------------------------------------------------------
+
+    def _procesar_arranque_generador(self, evento: models.ArranqueGenerador, estado) -> List[models.Evento]:
+        derivados: List[models.Evento] = []
+
+        generador = estado.componentes.get(evento.generador_id)
+        if generador is None:
+            return derivados
+        
+        if evento.arranque_exitoso:
+            generador.estado = "activo"
+            if hasattr(generador, "arrancado"):
+                generador.arrancado = True
+            
+            derivados.extend(
+                self.motor_reglas.generar_eventos_entrada_generador(
+                    generador_id= generador.id,
+                    tiempo_s= evento.tiempo_s,
+                    estado= estado
+                )
+            )
+        else:
+            generador.estado = "fallado"
+        
+        return derivados
+    
+    def _procesar_parada_generador(self, evento: models.ParadaGenerador, estado) -> List[models.Evento]:
+        generador = estado.componentes.get(evento.generador_id)
+        if generador is not None:
+            generador.estado = "desconectado"
+            if hasattr(generador, "arrancado"):
+                generador.arrancado = False
+        return []
+    
+    # -------------------------------------------------------------------------
+    # Eventos sala IT
+    # -------------------------------------------------------------------------
+
+    def _procesar_degradacion_sala(self, evento: models.DegradacionSalaIT, estado) -> List[models.Evento]:
+        sala = estado.salas_it.get(evento.sala_it_id)
+        if sala is not None:
+            sala.estado = "degradada"
+            sala.potencia_actual_kw = max(0.0, sala.potencia_actual_kw - evento.carga_perdida_kw)
+        return []
+    
+    def _procesar_perdida_sala(self, evento: models.PerdidaSalaIT, estado) -> List[models.Evento]:
+        sala = estado.salas_it.get(evento.sala_it_id)
+        if sala is not None:
+            sala.estado = "sin_alimentacion"
+            sala.potencia_actual_kw = max(0.0, sala.potencia_actual_kw - evento.carga_afectada_kw)
+        return []
+    
+    def _procesar_restablecimiento_sala(self, evento: models.RestablecimientoSalaIT, estado) -> List[models.Evento]:
+        sala = estado.salas_it.get(evento.sala_it_id)
+        if sala is not None:
+            sala.estado = "activa"
+            sala.potencia_actual_kw += evento.carga_recuperada_kw
+        return []
+    
+    
+    # -------------------------------------------------------------------------
+    # Eventos zona IT
+    # -------------------------------------------------------------------------
+
+    def _procesar_perdida_zona(self, evento: models.PerdidaZonaIT, estado) -> List[models.Evento]:
+        zona =  estado.zonas_it.get(evento.carga_it_id)
+        if zona is not None:
+            zona.estado = "sin_alimentación"
+        return []
+    
+    def _procesar_restablecimiento_zona(self, evento: models.RestablecimientoZonaIT, estado) -> List[models.Evento]:
+        zona =  estado.zonas_it.get(evento.carga_it_id)
+        if zona is not None:
+            zona.estado = "alimentado"
+        return []
+    
+                
