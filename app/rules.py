@@ -380,3 +380,217 @@ class MotorReglas:
                     )
                 )
         return eventos
+
+
+    # ---------------------------------------------------------------------
+    # 6. GENERACIÓN DE EVENTOS DERIVADOS
+    # ---------------------------------------------------------------------
+
+    def generar_eventos_caida_red(self, tiempo_s: float, estado):
+        eventos = []
+
+        # 1. Conmutación a UPS
+        for componente in estado.componentes.values():
+            if componente.tipo.lower() == "ups" and componente.estado == "activo":
+                eventos.append(
+                    models.ConmutacionFuente(
+                        id=f"conm_ups_{componente.id}_{int(tiempo_s)}",
+                        tipo="ConmutacionFuente",
+                        tiempo_s=tiempo_s,
+                        duracion_s=0.0,
+                        objetivo_id=componente.id,
+                        objetivo_tipo="ups",
+                        descripcion=f"Conmutación temporal a UPS {componente.id}",
+                        severidad=2,
+                        fuente_origen="red",
+                        fuente_destino=componente.id,
+                        tiempo_transferencia_ms=getattr(componente, "tiempo_conmutacion_ms", 0.0),
+                        exito=True,
+                    )
+                )
+
+                eventos.append(
+                    models.AgotamientoBateria(
+                        id=f"agotamiento_{componente.id}_{int(tiempo_s)}",
+                        tipo="AgotamientoBateria",
+                        tiempo_s=tiempo_s + getattr(componente, "autonomia_min_eol", 0.0) * 60.0,
+                        duracion_s=0.0,
+                        objetivo_id=componente.id,
+                        objetivo_tipo="ups",
+                        descripcion=f"Agotamiento previsto de batería en {componente.id}",
+                        severidad=4,
+                        ups_id=componente.id,
+                        autonomia_restante_min=0.0,
+                    )
+                )
+
+        # 2. Arranque de generadores
+        for componente in estado.componentes.values():
+            if componente.tipo.lower() == "generador" and componente.estado in {"activo", "reserva"}:
+                eventos.append(
+                    models.ArranqueGenerador(
+                        id=f"arranque_{componente.id}_{int(tiempo_s)}",
+                        tipo="ArranqueGenerador",
+                        tiempo_s=tiempo_s + getattr(componente, "tiempo_arranque_s", 0.0),
+                        duracion_s=0.0,
+                        objetivo_id=componente.id,
+                        objetivo_tipo="generador",
+                        descripcion=f"Arranque automático de generador {componente.id}",
+                        severidad=3,
+                        generador_id=componente.id,
+                        tiempo_arranque_s=getattr(componente, "tiempo_arranque_s", 0.0),
+                        arranque_exitoso=True,
+                    )
+                )
+
+        return eventos
+
+    def generar_eventos_retorno_red(self, tiempo_s: float, estado):
+        eventos = []
+        for componente in estado.componentes.values():
+            if componente.tipo.lower() in {"ups", "generador"} and componente.estado == "activo":
+                eventos.append(
+                    models.RestablecimientoSuministro(
+                        id=f"restore_{componente.id}_{int(tiempo_s)}",
+                        tipo="RestablecimientoSuministro",
+                        tiempo_s=tiempo_s,
+                        duracion_s=0.0,
+                        objetivo_id=componente.id,
+                        objetivo_tipo=componente.tipo,
+                        descripcion=f"Retorno a fuente preferida tras recuperación de red",
+                        severidad=1,
+                        nivel="sistema",
+                        carga_recuperada_kw=self.obtener_capacidad_componente_kw(componente),
+                    )
+                )
+        return eventos
+
+    def generar_eventos_por_fallo_ups(self, ups_id: str, tiempo_s: float, estado):
+        eventos = []
+        ups = estado.componentes.get(ups_id)
+        if ups is None:
+            return eventos
+
+        # Buscar respaldo por generador o pérdida de suministro
+        generadores_activos = [
+            c for c in estado.componentes.values()
+            if c.tipo.lower() == "generador" and c.estado == "activo"
+        ]
+
+        if generadores_activos:
+            gen = generadores_activos[0]
+            eventos.append(
+                models.ConmutacionFuente(
+                    id=f"conm_{ups_id}_{gen.id}_{int(tiempo_s)}",
+                    tipo="ConmutacionFuente",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=ups_id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Conmutación desde UPS {ups_id} hacia generador {gen.id}",
+                    severidad=3,
+                    fuente_origen=ups_id,
+                    fuente_destino=gen.id,
+                    tiempo_transferencia_ms=50.0,
+                    exito=True,
+                )
+            )
+        else:
+            eventos.append(
+                models.PerdidaSuministro(
+                    id=f"loss_ups_{ups_id}_{int(tiempo_s)}",
+                    tipo="PerdidaSuministro",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=ups_id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Pérdida de suministro por fallo de UPS {ups_id}",
+                    severidad=4,
+                    nivel="bloque",
+                    carga_afectada_kw=self.obtener_capacidad_componente_kw(ups),
+                )
+            )
+
+        return eventos
+
+    def generar_eventos_por_fallo_generador(self, generador_id: str, tiempo_s: float, estado):
+        eventos = []
+
+        generadores_activos = [
+            c for c in estado.componentes.values()
+            if c.tipo.lower() == "generador" and c.estado == "activo"
+        ]
+
+        if not generadores_activos:
+            eventos.append(
+                models.PerdidaSuministro(
+                    id=f"loss_gen_{generador_id}_{int(tiempo_s)}",
+                    tipo="PerdidaSuministro",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=generador_id,
+                    objetivo_tipo="generador",
+                    descripcion=f"Pérdida potencial de suministro por fallo de generador {generador_id}",
+                    severidad=5,
+                    nivel="sistema",
+                    carga_afectada_kw=0.0,
+                )
+            )
+
+        return eventos
+
+    def generar_eventos_por_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado):
+        generadores_activos = [
+            c for c in estado.componentes.values()
+            if c.tipo.lower() == "generador" and c.estado == "activo"
+        ]
+
+        if generadores_activos:
+            return []
+
+        return [
+            models.PerdidaSuministro(
+                id=f"loss_bat_{evento.ups_id}_{int(evento.tiempo_s)}",
+                tipo="PerdidaSuministro",
+                tiempo_s=evento.tiempo_s,
+                duracion_s=0.0,
+                objetivo_id=evento.ups_id,
+                objetivo_tipo="ups",
+                descripcion=f"Pérdida de suministro por agotamiento de batería en {evento.ups_id}",
+                severidad=5,
+                nivel="ups",
+                carga_afectada_kw=0.0,
+            )
+        ]
+
+    def generar_eventos_fallo_conmutacion(self, evento: models.ConmutacionFuente, estado):
+        return [
+            models.PerdidaSuministro(
+                id=f"loss_transfer_{evento.objetivo_id}_{int(evento.tiempo_s)}",
+                tipo="PerdidaSuministro",
+                tiempo_s=evento.tiempo_s,
+                duracion_s=0.0,
+                objetivo_id=evento.objetivo_id,
+                objetivo_tipo=evento.objetivo_tipo,
+                descripcion=f"Fallo de conmutación {evento.fuente_origen} -> {evento.fuente_destino}",
+                severidad=5,
+                nivel="transferencia",
+                carga_afectada_kw=0.0,
+            )
+        ]
+
+    def generar_eventos_entrada_generador(self, generador_id: str, tiempo_s: float, estado):
+        return [
+            models.RestablecimientoSuministro(
+                id=f"restore_gen_{generador_id}_{int(tiempo_s)}",
+                tipo="RestablecimientoSuministro",
+                tiempo_s=tiempo_s,
+                duracion_s=0.0,
+                objetivo_id=generador_id,
+                objetivo_tipo="generador",
+                descripcion=f"Entrada en servicio del generador {generador_id}",
+                severidad=2,
+                nivel="sistema",
+                carga_recuperada_kw=0.0,
+            )
+        ]
