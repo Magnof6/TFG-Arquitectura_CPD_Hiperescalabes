@@ -298,7 +298,7 @@ class MotorReglas:
     def generar_evento_entrada_reserva_desde_estado(self, grupo, componente_fallado_id: str, tiempo_s: float, estado):
         for comp in self.obtener_componentes_grupo(grupo, estado):
             if comp.estado == "reserva":
-                return EntradaReserva(
+                return models.EntradaReserva(
                     id=f"entrada_reserva_{grupo.id}_{comp.id}_{int(tiempo_s)}",
                     tipo="EntradaReserva",
                     tiempo_s=tiempo_s,
@@ -325,4 +325,58 @@ class MotorReglas:
                 )
                 if evento:
                     eventos.append(evento)
+        return eventos
+
+    # ---------------------------------------------------------------------
+    # 5. SOBRECARGA Y PRIORIZACIÓN DE CARGA
+    # ---------------------------------------------------------------------
+
+    def detectar_sobrecarga(self, demanda_kw: float, capacidad_kw: float) -> bool:
+        return demanda_kw > capacidad_kw
+
+    def calcular_porcentaje_sobrecarga(self, demanda_kw: float, capacidad_kw: float) -> float:
+        if capacidad_kw <= 0:
+            return 100.0
+        exceso = max(0.0, demanda_kw - capacidad_kw)
+        return (exceso / capacidad_kw) * 100.0
+
+    def aplicar_prioridad_cargas(self, cargas: List[object], capacidad_disponible_kw: float) -> List[object]:
+        """
+        Devuelve las cargas servidas por prioridad.
+        Prioridad más alta = número mayor.
+        """
+        cargas_ordenadas = sorted(cargas, key=lambda c: c.prioridad, reverse=True)
+        servidas = []
+        restante = capacidad_disponible_kw
+
+        for carga in cargas_ordenadas:
+            if carga.demanda_kw <= restante:
+                servidas.append(carga)
+                restante -= carga.demanda_kw
+
+        return servidas
+
+    def generar_eventos_por_sobrecarga(self, evento: models.Sobrecarga, estado):
+        eventos = []
+        cargas = list(getattr(estado, "cargas_it", {}).values()) + list(getattr(estado, "zonas_it", {}).values())
+
+        servidas = self.aplicar_prioridad_cargas(cargas, evento.capacidad_disponible_kw)
+        servidas_ids = {c.id for c in servidas}
+
+        for carga in cargas:
+            if carga.id not in servidas_ids:
+                eventos.append(
+                    models.PerdidaSuministro(
+                        id=f"loss_{carga.id}_{int(evento.tiempo_s)}",
+                        tipo="PerdidaSuministro",
+                        tiempo_s=evento.tiempo_s,
+                        duracion_s=evento.duracion_s,
+                        objetivo_id=carga.id,
+                        objetivo_tipo=getattr(carga, "tipo", "carga"),
+                        descripcion=f"Pérdida de suministro por sobrecarga en {carga.id}",
+                        severidad=evento.severidad,
+                        nivel="carga",
+                        carga_afectada_kw=carga.demanda_kw,
+                    )
+                )
         return eventos
