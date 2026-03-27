@@ -194,10 +194,6 @@ class MotorReglas:
             carga.estado = "sin_alimentacion"
 
     def reevaluar_todas_las_cargas(self, estado) -> None:
-        if hasattr(estado, "cargas_it"):
-            for carga in estado.cargas_it.values():
-                self.reevaluar_carga(carga, estado)
-
         if hasattr(estado, "zonas_it"):
             for zona in estado.zonas_it.values():
                 self.reevaluar_zona(zona, estado)
@@ -358,7 +354,7 @@ class MotorReglas:
 
     def generar_eventos_por_sobrecarga(self, evento: models.Sobrecarga, estado):
         eventos = []
-        cargas = list(getattr(estado, "cargas_it", {}).values()) + list(getattr(estado, "zonas_it", {}).values())
+        cargas = list(getattr(estado, "zonas_it", {}).values())
 
         servidas = self.aplicar_prioridad_cargas(cargas, evento.capacidad_disponible_kw)
         servidas_ids = {c.id for c in servidas}
@@ -601,7 +597,7 @@ class MotorReglas:
     # ---------------------------------------------------------------------
 
     def hay_perdida_carga_critica(self, estado) -> bool:
-        cargas = list(getattr(estado, "cargas_it", {}).values()) + list(getattr(estado, "zonas_it", {}).values())
+        cargas = list(getattr(estado, "zonas_it", {}).values())
         for carga in cargas:
             if getattr(carga, "prioridad", 0) >= 4 and carga.estado == "sin_alimentacion":
                 return True
@@ -624,3 +620,43 @@ class MotorReglas:
         if self.hay_perdida_redundancia(estado) or self.hay_capacidad_comprometida(estado):
             return "degradado"
         return "operativo"
+
+        cargas = list(getattr(estado, "zonas_it", {}).values())
+   # ---------------------------------------------------------------------
+    # 8. MÉTRICAS BÁSICAS DEL ESTADO
+    # ---------------------------------------------------------------------
+
+    def demanda_total_kw(self, estado) -> float:
+        total = 0.0
+        for zona in getattr(estado, "zonas_it", {}).values():
+            total += getattr(zona, "demanda_kw", 0.0)
+        return total
+
+    def carga_servida_kw(self, estado) -> float:
+        total = 0.0
+        for zona in getattr(estado, "zonas_it", {}).values():
+            if zona.estado in {"alimentado", "degradado"}:
+                total += getattr(zona, "demanda_kw", 0.0)
+        return total
+
+    def carga_perdida_kw(self, estado) -> float:
+        return max(0.0, self.demanda_total_kw(estado) - self.carga_servida_kw(estado))
+
+    def capacidad_total_activa_kw(self, estado) -> float:
+        total = 0.0
+        for comp in estado.componentes.values():
+            total += self.obtener_capacidad_componente_kw(comp)
+        return total
+
+    # ---------------------------------------------------------------------
+    # 9. HELPERS INTERNOS
+    # ---------------------------------------------------------------------
+
+    def _buscar_nodo(self, nodo_id: str, estado):
+        if nodo_id in estado.componentes:
+            return estado.componentes[nodo_id]
+        if hasattr(estado, "zonas_it") and nodo_id in estado.zonas_it:
+            return estado.zonas_it[nodo_id]
+        if hasattr(estado, "salas_it") and nodo_id in estado.salas_it:
+            return estado.salas_it[nodo_id]
+        return None
