@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Optional, List, Dict
 
-import models 
+import models
 
 class ProcesadorEventos:
     """
@@ -99,9 +99,9 @@ class ProcesadorEventos:
         )
 
         #Si el componente pertenece a un grupo N +1, comprobar si entra reserva
-        grupo = self.motor_reglas.buscar_grupo_componente(componente.id, estado)
+        grupo = self.motor_reglas.buscar_grupo_de_componente(componente.id, estado)
         if grupo is not None:
-            evento_reserva = self.motor_reglas.generar_evento__entrada_reserva(
+            evento_reserva = self.motor_reglas.generar_evento_entrada_reserva_desde_estado(
                 grupo=grupo,
                 componente_fallido_id= componente.id,
                 tiempo_s= evento.tiempo_s,
@@ -116,15 +116,15 @@ class ProcesadorEventos:
                 self.motor_reglas.generar_eventos_caida_red(
                     tiempo_s= evento.tiempo_s,
                     estado= estado
-                 )
                 )
+            )
         # Si falla una UPS, puede producirse conmutación o pérdida de suministro
         if componente.tipo.lower() =="ups":
             derivados.extend(
                 self.motor_reglas.generar_eventos_fallo_ups(
                     ups_id= componente.id,
                     tiempo_s= evento.tiempo_s,
-                    estado= estado 
+                    estado= estado
                 )
             )
         
@@ -186,12 +186,12 @@ class ProcesadorEventos:
     # Eventos de fuente / suministro
     # -------------------------------------------------------------------------
 
-    def _procesar_conmutation_fuente(self, evento: models.ConmutacionFuente, estado) -> List[models.Evento]:
+    def _procesar_conmutacion_fuente(self, evento: models.ConmutacionFuente, estado) -> List[models.Evento]:
         derivados: List[models.Evento] = []
 
         if not evento.exito:
             derivados.extend(
-                self.motor_reglas.generar_eventos_fallo_conmutación(
+                self.motor_reglas.generar_eventos_fallo_conmutacion(
                     evento= evento,
                     estado= estado
                 )

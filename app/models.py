@@ -9,7 +9,7 @@ from typing import Optional, List, Dict
 class ObjetoElectrico:
     id: str
     nombre: str
-    tipo: str   
+    tipo: str
     estado: str     #activo, reserva, fallando, mantenimiento, desconectado
     criticidad: int #1-5, 1 es menos crítico, 5 es más crítico
     tiempo_recuperacion_s: float #SEGUNDOS
@@ -162,6 +162,7 @@ class ZonaIT:
     prioridad: int
     alimentacion_preferida: str
     alimentacion_respaldo: str
+    sala_it_id: str
 
 ############ CONEXIONES ############
 
@@ -241,12 +242,6 @@ class SalidaReserva(Evento):
 class AgotamientoBateria(Evento):
     ups_id: str
     autonomia_restante_min: float
-
-@dataclass
-class ArranqueGenerador(Evento):
-    generador_id: str
-    tiempo_arranque_s: float
-    arranque_exitoso: bool
 
 @dataclass
 class ArranqueGenerador(Evento):

@@ -36,6 +36,7 @@ def construir_sistema():
         tension_kv=400,
         numero_lineas=2,
         nodo_origen="grid",
+        es_reserva=False
     )
 
     sub = Subestacion(
@@ -52,6 +53,7 @@ def construir_sistema():
         lineas_salientes=2,
         num_transformadores=2,
         esquema_barras="simple",
+        es_reserva=False
     )
 
     trafo = Transformador(
@@ -68,6 +70,7 @@ def construir_sistema():
         impedancia_pct=6,
         grupo_vectorial="Dyn11",
         refrigeracion="ONAN",
+        es_reserva=False
     )
 
     ups = UPS(
@@ -87,6 +90,7 @@ def construir_sistema():
         tiempo_conmutacion_ms=10,
         bateria_tipo="Li-ion",
         bms_monitorizado=True,
+        es_reserva=False
     )
 
     sts = STS(
@@ -100,6 +104,7 @@ def construir_sistema():
         tiempo_transferencia_ms=10,
         fuente_preferida="red",
         fuente_respaldo="ups_1",
+        es_reserva=False
     )
 
     bus = Busbar(
@@ -112,6 +117,7 @@ def construir_sistema():
         tension_v=415,
         corriente_nominal_a=2000,
         capacidad_kw=800,
+        es_reserva=False
     )
 
     # -----------------------------------------------------------------

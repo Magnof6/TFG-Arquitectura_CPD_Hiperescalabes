@@ -35,7 +35,7 @@ class MotorReglas:
     def componente_aporta_capacidad(self, componente) -> bool:
         return componente is not None and componente.estado == "activo"
     
-    def conexión_esta_disponible (self, conexion) -> bool:
+    def conexion_esta_disponible (self, conexion) -> bool:
         return conexion.estado == "activa"
     
     def obtener_capacidad_componente_kw(self, componente) -> float:
@@ -162,7 +162,7 @@ class MotorReglas:
                 999
             )
         )
-        return rutas_validas   
+        return rutas_validas
     
     #---------------------------------------------------------
     # Alimentación de Cargas y Salas
@@ -182,7 +182,7 @@ class MotorReglas:
             demanda_kw=carga.demanda_kw,
             estado=estado
         )
-        return len(rutas) > 2
+        return len(rutas) >= 2
 
     def reevaluar_carga(self, carga, estado) -> None:
         if self.carga_esta_alimentada(carga, estado):
@@ -461,7 +461,7 @@ class MotorReglas:
                 )
         return eventos
 
-    def generar_eventos_por_fallo_ups(self, ups_id: str, tiempo_s: float, estado):
+    def generar_eventos_fallo_ups(self, ups_id: str, tiempo_s: float, estado):
         eventos = []
         ups = estado.componentes.get(ups_id)
         if ups is None:
@@ -509,7 +509,7 @@ class MotorReglas:
 
         return eventos
 
-    def generar_eventos_por_fallo_generador(self, generador_id: str, tiempo_s: float, estado):
+    def generar_eventos_fallo_generador(self, generador_id: str, tiempo_s: float, estado):
         eventos = []
 
         generadores_activos = [
@@ -535,7 +535,7 @@ class MotorReglas:
 
         return eventos
 
-    def generar_eventos_por_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado):
+    def generar_eventos_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado):
         generadores_activos = [
             c for c in estado.componentes.values()
             if c.tipo.lower() == "generador" and c.estado == "activo"
@@ -620,9 +620,7 @@ class MotorReglas:
         if self.hay_perdida_redundancia(estado) or self.hay_capacidad_comprometida(estado):
             return "degradado"
         return "operativo"
-
-        cargas = list(getattr(estado, "zonas_it", {}).values())
-   # ---------------------------------------------------------------------
+    # ---------------------------------------------------------------------
     # 8. MÉTRICAS BÁSICAS DEL ESTADO
     # ---------------------------------------------------------------------
 
