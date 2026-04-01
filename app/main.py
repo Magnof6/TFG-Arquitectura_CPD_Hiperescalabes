@@ -92,6 +92,25 @@ def construir_sistema():
         bms_monitorizado=True,
         es_reserva=False
     )
+    ups_2 = UPS(
+        id="ups_2",
+        nombre="UPS 2",
+        tipo="UPS",
+        estado="reserva",
+        criticidad=5,
+        tiempo_recuperacion_s=100,
+        subtipo="IT",
+        tecnologia="VFI",
+        potencia_nominal_kva=1000,
+        potencia_nominal_kw=900,
+        eficiencia_pct=95,
+        autonomia_min_eol=5,
+        vida_util_anios=10,
+        tiempo_conmutacion_ms=10,
+        bateria_tipo="Li-ion",
+        bms_monitorizado=True,
+        es_reserva=True,
+    )
 
     sts = STS(
         id="sts_1",
@@ -127,7 +146,7 @@ def construir_sistema():
     sala = SalaIT(
         id="sala_1",
         nombre="Sala IT",
-        estado="alimentada",
+        estado="alimentado",
         potencia_objetivo_kw=500,
         potencia_actual_kw=500,
         numero_zonas=1,
@@ -140,7 +159,7 @@ def construir_sistema():
         id="zona_1",
         nombre="Zona IT",
         tipo="critica",
-        estado="alimentado",
+        estado="alimentada",
         demanda_kw=500,
         prioridad=5,
         sala_it_id="sala_1",
@@ -157,6 +176,7 @@ def construir_sistema():
         sub.id: sub,
         trafo.id: trafo,
         ups.id: ups,
+        ups_2.id: ups_2,
         sts.id: sts,
         bus.id: bus,
         sala.id: sala,
@@ -167,7 +187,9 @@ def construir_sistema():
         ConexionElectrica("red", "sub"),
         ConexionElectrica("sub", "trafo"),
         ConexionElectrica("trafo", "ups_1"),
+        ConexionElectrica("trafo", "ups_2",tipo="respaldo"),
         ConexionElectrica("ups_1", "sts_1"),
+        ConexionElectrica("ups_2", "sts_1", tipo="respaldo"),
         ConexionElectrica("sts_1", "bus_1"),
         ConexionElectrica("bus_1", "sala_1"),
         ConexionElectrica("sala_1", "zona_1"),
@@ -184,7 +206,7 @@ def construir_sistema():
             id="ups_group",
             nombre="Grupo UPS",
             tipo_componente="ups",
-            componentes_ids=["ups_1"],
+            componentes_ids=["ups_1", "ups_2"],
             capacidad_necesaria_kw=500,
             n_requerido=1,
         )
@@ -202,6 +224,7 @@ def construir_sistema():
             sub.id: sub,
             trafo.id: trafo,
             ups.id: ups,
+            ups_2.id: ups_2,
             sts.id: sts,
             bus.id: bus,
         },

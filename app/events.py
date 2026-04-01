@@ -103,7 +103,7 @@ class ProcesadorEventos:
         if grupo is not None:
             evento_reserva = self.motor_reglas.generar_evento_entrada_reserva_desde_estado(
                 grupo=grupo,
-                componente_fallido_id= componente.id,
+                componente_fallado_id= componente.id,
                 tiempo_s= evento.tiempo_s,
                 estado= estado
             )
@@ -147,7 +147,7 @@ class ProcesadorEventos:
             return derivados
 
         estado_anterior = componente.estado
-        componente.estado = evento.estado_final
+        componente.estado = evento.nuevo_estado
 
         derivados.append(
             models.CambioEstado(
@@ -205,6 +205,11 @@ class ProcesadorEventos:
         )
     
     def _procesar_perdida_suministro(self, evento: models.PerdidaSuministro, estado) -> List[models.Evento]:
+        for zona in estado.zonas_it.values():
+            zona.estado = "sin_alimentacion"
+        for sala in estado.salas_it.values():
+            sala.estado = "sin_alimentacion"
+            sala.potencia_actual_kw = 0.0
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
@@ -292,7 +297,7 @@ class ProcesadorEventos:
     def _procesar_restablecimiento_sala(self, evento: models.RestablecimientoSalaIT, estado) -> List[models.Evento]:
         sala = estado.salas_it.get(evento.sala_it_id)
         if sala is not None:
-            sala.estado = "activa"
+            sala.estado = "alimentada"
             sala.potencia_actual_kw += evento.carga_recuperada_kw
         return []
     
@@ -304,7 +309,7 @@ class ProcesadorEventos:
     def _procesar_perdida_zona(self, evento: models.PerdidaZonaIT, estado) -> List[models.Evento]:
         zona =  estado.zonas_it.get(evento.carga_it_id)
         if zona is not None:
-            zona.estado = "sin_alimentación"
+            zona.estado = "sin_alimentacion"
         return []
     
     def _procesar_restablecimiento_zona(self, evento: models.RestablecimientoZonaIT, estado) -> List[models.Evento]:

@@ -311,7 +311,9 @@ class MotorReglas:
     def reevaluar_grupos_redundancia(self, estado):
         eventos = []
         for grupo in estado.grupos_redundancia.values():
+            
             capacidad = self.grupo_capacidad_activa_kw(grupo, estado)
+            
             if capacidad < grupo.capacidad_necesaria_kw and self.grupo_tiene_reserva_disponible(grupo, estado):
                 evento = self.generar_evento_entrada_reserva_desde_estado(
                     grupo=grupo,

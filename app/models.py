@@ -10,7 +10,7 @@ class ObjetoElectrico:
     id: str
     nombre: str
     tipo: str
-    estado: str     #activo, reserva, fallando, mantenimiento, desconectado
+    estado: str     #activo, reserva, fallado, mantenimiento, desconectado
     criticidad: int #1-5, 1 es menos crítico, 5 es más crítico
     tiempo_recuperacion_s: float #SEGUNDOS
     es_reserva: bool
@@ -144,7 +144,7 @@ class BloqueElectrico:
 class SalaIT:
     id: str
     nombre: str
-    estado: str
+    estado: str #alimentado, degradado, sin_alimentacion
     potencia_objetivo_kw: float
     potencia_actual_kw: float
     numero_zonas: int
@@ -193,7 +193,7 @@ class Evento:
 @dataclass
 class FalloComponente(Evento):
     causa: str
-    nuevo_estado: str = "fallando"
+    nuevo_estado: str = "fallado"
 
 @dataclass
 class RecuperacionComponente(Evento):
