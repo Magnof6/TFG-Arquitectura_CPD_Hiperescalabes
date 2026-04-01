@@ -331,13 +331,20 @@ class MotorReglas:
     def reevaluar_grupos_redundancia(self, estado):
         eventos = []
         for grupo in estado.grupos_redundancia.values():
+            componentes = self.obtener_componentes_grupo(grupo, estado)
+            
+            activos = [c for c in componentes if c.estado == "activo"]
+            reservas = [c for c in componentes if c.estado == "reserva"]
             
             capacidad = self.grupo_capacidad_activa_kw(grupo, estado)
             
             if capacidad < grupo.capacidad_necesaria_kw and self.grupo_tiene_reserva_disponible(grupo, estado):
+                
+                fallados = [comp for comp in componentes if comp.estado in {"fallado", "mantenimiento", "desconectado"}] #detectamos el componente que ha dejado de estar operativo
+                componente_fallado_id = fallados[0].id if fallados else "desconocido"
                 evento = self.generar_evento_entrada_reserva_desde_estado(
                     grupo=grupo,
-                    componente_fallado_id="desconocido",
+                    componente_fallado_id=componente_fallado_id,
                     tiempo_s=estado.tiempo_actual_s,
                     estado=estado,
                 )
