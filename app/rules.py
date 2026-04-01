@@ -35,6 +35,13 @@ class MotorReglas:
     def componente_aporta_capacidad(self, componente) -> bool:
         return componente is not None and componente.estado == "activo"
     
+    def componente_puede_suministrar(self, componente) -> bool: # para fuentes, se considera que solo las activas pueden suministrar; las reservas no aportan capacidad pero sí pueden ser consideradas para conmutación.
+        if componente is None:
+            return False
+        if componente.tipo.lower() not in {"redelectrica", "ups", "generador"}:
+            return False
+        return componente.estado == "activo"
+    
     def conexion_esta_disponible (self, conexion) -> bool:
         return conexion.estado == "activa"
     
@@ -68,9 +75,11 @@ class MotorReglas:
         """
         fuentes= []
         for componente in estado.componentes.values():
-            tipo =  componente.tipo.lower()
-            if tipo in {"redelectrica", "ups", "generador"} and self.componente_es_operativo(componente):
+            if self.componente_puede_suministrar(componente):
                 fuentes.append(componente)
+            #tipo =  componente.tipo.lower()
+            #if tipo in {"redelectrica", "ups", "generador"} and self.componente_es_operativo(componente):
+            #    fuentes.append(componente)
         return fuentes
 
     def tipo_fuente(self, componente) -> str:
@@ -102,7 +111,7 @@ class MotorReglas:
                 return False
 
             # Las cargas y salas no usan la misma semántica que los componentes eléctricos
-            if hasattr(nodo, "estado") and nodo.__class__.__name__ not in {"SalaIT", "ZonaIT", "CargaIT"}:
+            if hasattr(nodo, "estado") and nodo.__class__.__name__ not in {"SalaIT", "ZonaIT"}:
                 if getattr(nodo, "estado", None) in {"fallado", "mantenimiento", "desconectado"}:
                     return False
 
@@ -127,7 +136,7 @@ class MotorReglas:
             if nodo is None:
                 continue
 
-            if hasattr(nodo, "tipo") and nodo.__class__.__name__ not in {"SalaIT", "ZonaIT", "CargaIT"}:
+            if hasattr(nodo, "tipo") and nodo.__class__.__name__ not in {"SalaIT", "ZonaIT"}:
                 cap = self.obtener_capacidad_componente_kw(nodo)
                 if cap > 0:
                     capacidades.append(cap)
@@ -270,8 +279,19 @@ class MotorReglas:
         return False
 
     def grupo_esta_degradado(self, grupo, estado) -> bool:
-        activos = sum(1 for comp in self.obtener_componentes_grupo(grupo, estado) if comp.estado == "activo")
-        return activos <= grupo.n_requerido
+        #activos = sum(1 for comp in self.obtener_componentes_grupo(grupo, estado) if comp.estado == "activo")
+        #return activos <= grupo.n_requerido
+        componentes = self.obtener_componentes_grupo(grupo, estado)
+        activos = [c for c in componentes if c.estado == "activo"]
+        reservas_activadas = [
+            c for c in componentes
+            if getattr(c, "es_reserva", False) and c.estado == "activo"
+        ]
+        capacidad_activa = sum (self.obtener_capacidad_componente_kw(c) for c in activos)
+        #Degradado si:
+        # - ya entró una reserva en servicio, o
+        # - La capacidad activa ya no cubre la demanda del grupo
+        return bool(reservas_activadas) or capacidad_activa < grupo.capacidad_necesaria_kw
 
     def generar_evento_entrada_reserva(self, grupo, componente_fallado_id: str, tiempo_s: float):
         """
@@ -645,7 +665,8 @@ class MotorReglas:
     def capacidad_total_activa_kw(self, estado) -> float:
         total = 0.0
         for comp in estado.componentes.values():
-            total += self.obtener_capacidad_componente_kw(comp)
+            if self.tipo_fuente(comp) in {"red", "ups", "generador"} and comp.estado == "activo":
+                total += self.obtener_capacidad_componente_kw(comp)
         return total
 
     # ---------------------------------------------------------------------

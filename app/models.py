@@ -91,6 +91,10 @@ class UPS(ObjetoElectrico):
     tiempo_conmutacion_ms: float
     bateria_tipo: str
     bms_monitorizado: bool
+    en_bateria: bool = False
+    alimentando_zona: bool = False
+    bateria_agotada: bool = False
+    tiempo_inicio_bateria_s: Optional[float] = None
 
 @dataclass
 class BateriaUPS(ObjetoElectrico):

@@ -205,11 +205,6 @@ class ProcesadorEventos:
         )
     
     def _procesar_perdida_suministro(self, evento: models.PerdidaSuministro, estado) -> List[models.Evento]:
-        for zona in estado.zonas_it.values():
-            zona.estado = "sin_alimentacion"
-        for sala in estado.salas_it.values():
-            sala.estado = "sin_alimentacion"
-            sala.potencia_actual_kw = 0.0
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
@@ -220,10 +215,37 @@ class ProcesadorEventos:
     # -------------------------------------------------------------------------
 
     def _procesar_entrada_reserva(self, evento: models.EntradaReserva, estado) -> List[models.Evento]:
+        derivados= []
+        
         comp_reserva = estado.componentes.get(evento.componente_reserva_id)
+        comp_sustituido = estado.componentes.get(evento.componente_sustituido_id)
         if comp_reserva is not None:
             comp_reserva.estado = "activo"
-        return []
+            
+            if comp_reserva.tipo.lower() == "ups":
+                comp_reserva.en_bateria = True
+                comp_reserva.alimentando_zona = True
+                comp_reserva.tiempo_inicio_bateria_s = evento.tiempo_s
+                
+                derivados.append(
+                    models.AgotamientoBateria(
+                        id=f"agotamiento_{comp_reserva.id}_{int(evento.tiempo_s)}",
+                        tipo="AgotamientoBateria",
+                        tiempo_s=evento.tiempo_s + comp_reserva.autonomia_min_eol * 60.0,
+                        duracion_s=0.0,
+                        objetivo_id=comp_reserva.id,
+                        objetivo_tipo="ups",
+                        descripcion=f"Agotamiento previsto de batería en {comp_reserva.id}",
+                        severidad=4,
+                        ups_id=comp_reserva.id,
+                        autonomia_restante_min=0.0,
+                    )
+                )
+        if comp_sustituido is not None and comp_sustituido.tipo.lower() =="ups":
+            comp_sustituido.alimentando_zona = False
+            comp_sustituido.en_bateria = True
+        return derivados
+    
     def _procesar_salida_reserva(self, evento: models.SalidaReserva, estado) -> List[models.Evento]:
         comp_reserva = estado.componentes.get(evento.componente_reserva_id)
         if comp_reserva is not None:
@@ -235,10 +257,25 @@ class ProcesadorEventos:
     # -------------------------------------------------------------------------
 
     def _procesar_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado) -> List[models.Evento]:
-        return self.motor_reglas.generar_eventos_agotamiento_bateria(
-            evento= evento,
-            estado= estado
+        derivados = []
+
+        ups = estado.componentes.get(evento.ups_id)
+        if ups is None:
+            return derivados
+
+        ups.en_bateria = False
+        ups.bateria_agotada = True
+        ups.alimentando_zona = False
+        ups.estado = "fallado"
+
+        derivados.extend(
+            self.motor_reglas.generar_eventos_agotamiento_bateria(
+                evento=evento,
+                estado=estado
+            )
         )
+
+        return derivados
     
     # -------------------------------------------------------------------------
     # Eventos generadores
