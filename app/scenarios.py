@@ -12,7 +12,8 @@ from models import (
     ConexionElectrica,
     FalloComponente,
     GrupoRedundancia,
-    Generador
+    Generador,
+    RecuperacionComponente,
 )
 from topology import TopologiaSistema
 from engine import EstadoSimulacion
@@ -543,3 +544,27 @@ def escenario_con_generador():
     ]
 
     return estado, eventos
+
+def escenario_caida_y_retorno_red():
+    estado, eventos = escenario_con_generador()
+    eventos.append(
+        RecuperacionComponente(
+            id="recuperacion_red",
+            tipo="RecuperacionComponente",
+            tiempo_s=610,  # la red vuelve después de 10 minutos
+            duracion_s=0,
+            objetivo_id="red",
+            objetivo_tipo="RedElectrica",
+            descripcion="Retorno de red eléctrica tras 10 minutos de caída",
+            severidad=2,
+            causa="Recuperación del suministro externo",
+            nuevo_estado="activo",
+        )
+    )
+    return estado, eventos
+
+
+
+
+
+
