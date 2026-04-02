@@ -298,7 +298,8 @@ class ProcesadorEventos:
         generador = estado.componentes.get(evento.generador_id)
         if generador is None:
             return derivados
-        
+        if generador.estado not in {"activo","reserva"}: #Hacemos esto para que si el generador falla al arrancar, no se vuelva a intentar arrancar con eventos derivados posteriores
+            return derivados
         if evento.arranque_exitoso:
             generador.estado = "activo"
             if hasattr(generador, "arrancado"):
