@@ -18,6 +18,11 @@ from models import (
 from topology import TopologiaSistema
 from engine import EstadoSimulacion
 
+def escenario_sin_eventos():
+    estado, _ = escenario_con_generador()
+    eventos = []  # no hay eventos programados
+    return estado, eventos
+
 def escenario_base_ups ():
     # -----------------------------------------------------------------
     # 1. COMPONENTES
