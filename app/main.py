@@ -14,7 +14,7 @@ from models import (
     FalloComponente,
     GrupoRedundancia,
 )
-from scenarios import escenario_base_ups
+from scenarios import escenario_base_ups, escenario_con_generador
 from rules import MotorReglas
 from engine import MotorSimulacion
 
@@ -23,7 +23,7 @@ from engine import MotorSimulacion
 
 
 def main():
-    estado, eventos = escenario_base_ups()
+    estado, eventos = escenario_con_generador()
 
     motor_reglas = MotorReglas(estado.topologia)
     simulador = MotorSimulacion(estado, motor_reglas)
