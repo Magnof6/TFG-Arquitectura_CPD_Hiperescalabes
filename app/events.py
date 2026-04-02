@@ -262,6 +262,9 @@ class ProcesadorEventos:
         ups = estado.componentes.get(evento.ups_id)
         if ups is None:
             return derivados
+        #Si ya no está en batería, ignorar evento programado(puede ser que haya vuelto la red o haya entrado los generadores)
+        if not getattr(ups, "en_bateria", False):
+            return derivados
 
         ups.en_bateria = False
         ups.bateria_agotada = True
@@ -292,6 +295,10 @@ class ProcesadorEventos:
             generador.estado = "activo"
             if hasattr(generador, "arrancado"):
                 generador.arrancado = True
+            for comp in estado.componentes.values():
+                if comp.tipo.lower() =="ups":
+                    comp.en_bateria = False
+                    comp.alimentando_zona = False
             
             derivados.extend(
                 self.motor_reglas.generar_eventos_entrada_generador(
