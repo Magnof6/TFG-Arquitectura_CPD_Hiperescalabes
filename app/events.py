@@ -196,6 +196,14 @@ class ProcesadorEventos:
                     estado= estado
                 )
             )
+        # Si la red cae y conmutamos a una UPS, esa UPS entra en batería
+        if evento.objetivo_tipo.lower() == "ups":
+            ups = estado.componentes.get(evento.objetivo_id)
+            if ups is not None:
+                ups.en_bateria = True
+                ups.alimentando_zona = True
+                ups.tiempo_inicio_bateria_s = evento.tiempo_s
+
         return derivados
 
     def _procesar_sobrecarga(self, evento: models.Sobrecarga, estado) -> List[models.Evento]:
