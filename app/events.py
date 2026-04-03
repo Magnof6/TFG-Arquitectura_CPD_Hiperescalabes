@@ -79,7 +79,7 @@ class ProcesadorEventos:
 
         componente = estado.componentes.get(evento.objetivo_id)
         if componente is None:
-            return derivados 
+            return derivados
         estado_anterior = componente.estado
         componente.estado = evento.nuevo_estado
 
@@ -98,18 +98,6 @@ class ProcesadorEventos:
             )
         )
 
-        #Si el componente pertenece a un grupo N +1, comprobar si entra reserva
-        grupo = self.motor_reglas.buscar_grupo_de_componente(componente.id, estado)
-        if grupo is not None:
-            evento_reserva = self.motor_reglas.generar_evento_entrada_reserva_desde_estado(
-                grupo=grupo,
-                componente_fallado_id= componente.id,
-                tiempo_s= evento.tiempo_s,
-                estado= estado
-            )
-            if evento_reserva is not None:
-                derivados.append(evento_reserva)
-        
         #Si falla la red, se debe forzar la transición a respaldo y arranque de generadores
         if componente.tipo.lower() =="redelectrica":
             derivados.extend(
@@ -122,9 +110,10 @@ class ProcesadorEventos:
         if componente.tipo.lower() =="ups":
             derivados.extend(
                 self.motor_reglas.generar_eventos_fallo_ups(
-                    ups_id= componente.id,
-                    tiempo_s= evento.tiempo_s,
-                    estado= estado
+                    ups_id=componente.id,
+                    tiempo_s=evento.tiempo_s,
+                    estado=estado,
+                    estado_anterior=estado_anterior,
                 )
             )
         
@@ -196,14 +185,13 @@ class ProcesadorEventos:
                     estado= estado
                 )
             )
-        # Si la red cae y conmutamos a una UPS, esa UPS entra en batería
-        if evento.objetivo_tipo.lower() == "ups":
-            ups = estado.componentes.get(evento.objetivo_id)
-            if ups is not None:
-                ups.en_bateria = True
-                ups.alimentando_zona = True
-                ups.tiempo_inicio_bateria_s = evento.tiempo_s
-
+            return derivados
+        destino = estado.componentes.get(evento.fuente_destino)
+        if destino is not None and destino.tipo.lower() =="ups":
+            destino.alimentando_zona = True
+            destino.en_bateria = True
+            destino.tiempo_inicio_bateria_s = evento.tiempo_s
+        
         return derivados
 
     def _procesar_sobrecarga(self, evento: models.Sobrecarga, estado) -> List[models.Evento]:
@@ -228,6 +216,9 @@ class ProcesadorEventos:
         comp_reserva = estado.componentes.get(evento.componente_reserva_id)
         comp_sustituido = estado.componentes.get(evento.componente_sustituido_id)
         if comp_reserva is not None:
+            if comp_reserva.estado == "activo":
+                return derivados
+
             comp_reserva.estado = "activo"
             
             if comp_reserva.tipo.lower() == "ups":
@@ -298,7 +289,8 @@ class ProcesadorEventos:
         generador = estado.componentes.get(evento.generador_id)
         if generador is None:
             return derivados
-        if generador.estado not in {"activo","reserva"}: #Hacemos esto para que si el generador falla al arrancar, no se vuelva a intentar arrancar con eventos derivados posteriores
+        
+        if generador.estado not in {"activo", "reserva"}:
             return derivados
         if evento.arranque_exitoso:
             generador.estado = "activo"

@@ -279,19 +279,24 @@ class MotorReglas:
         return False
 
     def grupo_esta_degradado(self, grupo, estado) -> bool:
-        #activos = sum(1 for comp in self.obtener_componentes_grupo(grupo, estado) if comp.estado == "activo")
-        #return activos <= grupo.n_requerido
         componentes = self.obtener_componentes_grupo(grupo, estado)
         activos = [c for c in componentes if c.estado == "activo"]
         reservas_activadas = [
             c for c in componentes
             if getattr(c, "es_reserva", False) and c.estado == "activo"
         ]
-        capacidad_activa = sum (self.obtener_capacidad_componente_kw(c) for c in activos)
-        #Degradado si:
-        # - ya entró una reserva en servicio, o
-        # - La capacidad activa ya no cubre la demanda del grupo
-        return bool(reservas_activadas) or capacidad_activa < grupo.capacidad_necesaria_kw
+        capacidad_activa = sum(self.obtener_capacidad_componente_kw(c) for c in activos)
+        reserva_disponible = self.grupo_tiene_reserva_disponible(grupo, estado)
+
+        # Degradado si:
+        # - ya entró una reserva en servicio,
+        # - la capacidad activa no cubre la demanda del grupo, o
+        # - se perdió la redundancia N+1 (ya no queda reserva disponible).
+        return (
+            bool(reservas_activadas)
+            or capacidad_activa < grupo.capacidad_necesaria_kw
+            or (len(componentes) > grupo.n_requerido and not reserva_disponible)
+        )
 
     def generar_evento_entrada_reserva(self, grupo, componente_fallado_id: str, tiempo_s: float):
         """
@@ -333,8 +338,13 @@ class MotorReglas:
         for grupo in estado.grupos_redundancia.values():
             componentes = self.obtener_componentes_grupo(grupo, estado)
             
-            activos = [c for c in componentes if c.estado == "activo"]
-            reservas = [c for c in componentes if c.estado == "reserva"]
+            reservas_activadas = [
+                c for c in componentes
+                if getattr(c, "es_reserva", False) and c.estado == "activo"
+            ]
+            
+            if reservas_activadas:
+                continue  # ya se activó una reserva, no se generan eventos adicionales
             
             capacidad = self.grupo_capacidad_activa_kw(grupo, estado)
             
@@ -433,7 +443,7 @@ class MotorReglas:
                         exito=True,
                     )
                 )
-
+                               
                 eventos.append(
                     models.AgotamientoBateria(
                         id=f"agotamiento_{componente.id}_{int(tiempo_s)}",
@@ -490,12 +500,19 @@ class MotorReglas:
                 )
         return eventos
 
-    def generar_eventos_fallo_ups(self, ups_id: str, tiempo_s: float, estado):
+    def generar_eventos_fallo_ups(self, ups_id: str, tiempo_s: float, estado, estado_anterior: str = "activo"):
         eventos = []
         ups = estado.componentes.get(ups_id)
         if ups is None:
             return eventos
 
+        #Si la UPS estaba en reserva y no estaba alimentando, no hay perdida directa.
+        if estado_anterior != "activo":
+            return eventos
+
+        grupo = self.buscar_grupo_de_componente(ups_id, estado)
+        if grupo is not None and self.grupo_tiene_reserva_disponible(grupo, estado):
+            return eventos
         # Buscar respaldo por generador o pérdida de suministro
         generadores_activos = [
             c for c in estado.componentes.values()
@@ -565,6 +582,10 @@ class MotorReglas:
         return eventos
 
     def generar_eventos_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado):
+        grupo = self.buscar_grupo_de_componente(evento.ups_id, estado)
+        if grupo is not None and self.grupo_tiene_reserva_disponible(grupo, estado):
+            return []
+        
         generadores_activos = [
             c for c in estado.componentes.values()
             if c.tipo.lower() == "generador" and c.estado == "activo"
@@ -671,9 +692,27 @@ class MotorReglas:
 
     def capacidad_total_activa_kw(self, estado) -> float:
         total = 0.0
+        zonas = list(getattr(estado, "zonas_it", {}).values())
+        
         for comp in estado.componentes.values():
-            if self.tipo_fuente(comp) in {"red", "ups", "generador"} and comp.estado == "activo":
+            if self.tipo_fuente(comp) not in {"red", "ups", "generador"}:
+                continue
+            if comp.estado != "activo":
+                continue
+            
+            tiene_ruta_valida = False
+            for zona in zonas:
+                rutas = self.topologia.buscar_rutas(comp.id, zona.id)
+                for ruta in rutas:
+                    if self.ruta_es_operativa(ruta, estado) and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw:
+                        tiene_ruta_valida = True
+                        break
+                if tiene_ruta_valida:
+                    break
+                
+            if tiene_ruta_valida:
                 total += self.obtener_capacidad_componente_kw(comp)
+                
         return total
 
     # ---------------------------------------------------------------------
