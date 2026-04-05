@@ -91,7 +91,7 @@ class ProcesadorEventos:
                 duracion_s=0,
                 objetivo_id= componente.id,
                 objetivo_tipo= componente.tipo,
-                descripcion= f"Cambio de estado de {estado_anterior} a {componente.estado}",
+                descripcion= f"Cambio de estado de {estado_anterior} a {componente.estado} de {componente.id}",
                 severidad= evento.severidad,
                 estado_anterior= estado_anterior,
                 estado_nuevo= componente.estado
@@ -127,13 +127,27 @@ class ProcesadorEventos:
                 )
             )
             
-        if componente.tipo.lower() in {"emf", "subestacion", "transformador"}:
+        if componente.tipo.lower() in {"emf", "subestacion"}:
             derivados.extend(
                 self.motor_reglas.generar_eventos_caida_red(
                     tiempo_s=evento.tiempo_s,
                     estado=estado
                 )
             )
+        if componente.tipo.lower() =="transformador":
+            tension_salida_kv = getattr(componente, "tension_salida_kv", 0.0)
+            subtipo = getattr(componente, "subtipo", "").lower()
+            
+            #Transformadores upstream: impacto global
+            if tension_salida_kv >= 11 and subtipo != "it":
+                derivados.extend(
+                    self.motor_reglas.generar_eventos_caida_red(
+                        tiempo_s=evento.tiempo_s,
+                        estado=estado
+                    )
+                )
+            elif subtipo == "it":
+                pass
         return derivados
     
     def _procesar_recuperacion_componente(self, evento: models.RecuperacionComponente, estado) -> List[models.Evento]:

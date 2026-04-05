@@ -38,9 +38,15 @@ class MotorReglas:
     def componente_puede_suministrar(self, componente) -> bool: # para fuentes, se considera que solo las activas pueden suministrar; las reservas no aportan capacidad pero sí pueden ser consideradas para conmutación.
         if componente is None:
             return False
-        if componente.tipo.lower() not in {"redelectrica", "ups", "generador"}:
-            return False
-        return componente.estado == "activo"
+        if componente.tipo.lower() not in {"redelectrica", "generador"}:
+            return componente.estado == "activo"
+        
+        if componente.tipo.lower() == "ups":
+            return componente.estado == "activo" and (
+                getattr(componente, "en_bateria", False) or #getattr compprueba si está en modo bateria, si no devuelve False
+                getattr(componente, "alimentando_zona", False)
+            )
+        return False
     
     def conexion_esta_disponible (self, conexion) -> bool:
         return conexion.estado == "activa"
@@ -192,7 +198,7 @@ class MotorReglas:
             estado=estado
         )
         return len(rutas) >= 2
-
+#Evaluar si me lo puedo cargar
     def reevaluar_carga(self, carga, estado) -> None:
         if self.carga_esta_alimentada(carga, estado):
             if self.carga_tiene_redundancia(carga, estado):
@@ -206,6 +212,7 @@ class MotorReglas:
         if hasattr(estado, "zonas_it"):
             for zona in estado.zonas_it.values():
                 self.reevaluar_zona(zona, estado)
+#--------------------------------------------------------
 
     def reevaluar_zona(self, zona, estado) -> None:
         rutas = self.buscar_rutas_validas_a_destino(
@@ -424,40 +431,52 @@ class MotorReglas:
     def generar_eventos_caida_red(self, tiempo_s: float, estado):
         eventos = []
 
-        # 1. Conmutación a UPS
-        for componente in estado.componentes.values():
-            if componente.tipo.lower() == "ups" and componente.estado == "activo":
-                eventos.append(
-                    models.ConmutacionFuente(
-                        id=f"conm_ups_{componente.id}_{int(tiempo_s)}",
-                        tipo="ConmutacionFuente",
-                        tiempo_s=tiempo_s,
-                        duracion_s=0.0,
-                        objetivo_id=componente.id,
-                        objetivo_tipo="ups",
-                        descripcion=f"Conmutación temporal a UPS {componente.id}",
-                        severidad=2,
-                        fuente_origen="red",
-                        fuente_destino=componente.id,
-                        tiempo_transferencia_ms=getattr(componente, "tiempo_conmutacion_ms", 0.0),
-                        exito=True,
-                    )
+        # 1. Conmutación a la UPS preferida de cada zona
+        ups_ya_programadas = set()
+
+        for zona in estado.zonas_it.values():
+            ups_id = zona.alimentacion_preferida
+            ups = estado.componentes.get(ups_id)
+
+            if ups is None:
+                continue
+            if ups.estado != "activo":
+                continue
+            if ups.id in ups_ya_programadas:
+                continue
+
+            eventos.append(
+                models.ConmutacionFuente(
+                    id=f"conm_ups_{ups.id}_{int(tiempo_s)}",
+                    tipo="ConmutacionFuente",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=ups.id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Conmutación temporal a UPS {ups.id}",
+                    severidad=2,
+                    fuente_origen="red",
+                    fuente_destino=ups.id,
+                    tiempo_transferencia_ms=getattr(ups, "tiempo_conmutacion_ms", 0.0),
+                    exito=True,
                 )
-                               
-                eventos.append(
-                    models.AgotamientoBateria(
-                        id=f"agotamiento_{componente.id}_{int(tiempo_s)}",
-                        tipo="AgotamientoBateria",
-                        tiempo_s=tiempo_s + getattr(componente, "autonomia_min_eol", 0.0) * 60.0,
-                        duracion_s=0.0,
-                        objetivo_id=componente.id,
-                        objetivo_tipo="ups",
-                        descripcion=f"Agotamiento previsto de batería en {componente.id}",
-                        severidad=4,
-                        ups_id=componente.id,
-                        autonomia_restante_min=0.0,
-                    )
+            )
+
+            eventos.append(
+                models.AgotamientoBateria(
+                    id=f"agotamiento_{ups.id}_{int(tiempo_s)}",
+                    tipo="AgotamientoBateria",
+                    tiempo_s=tiempo_s + getattr(ups, "autonomia_min_eol", 0.0) * 60.0,
+                    duracion_s=0.0,
+                    objetivo_id=ups.id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Agotamiento previsto de batería en {ups.id}",
+                    severidad=4,
+                    ups_id=ups.id,
+                    autonomia_restante_min=0.0,
                 )
+            )
+            ups_ya_programadas.add(ups.id)
 
         # 2. Arranque de generadores
         for componente in estado.componentes.values():
@@ -477,7 +496,6 @@ class MotorReglas:
                         arranque_exitoso=True,
                     )
                 )
-
         return eventos
 
     def generar_eventos_retorno_red(self, tiempo_s: float, estado):
@@ -663,10 +681,32 @@ class MotorReglas:
         demanda_total = self.demanda_total_kw(estado)
         capacidad_total = self.capacidad_total_activa_kw(estado)
         return capacidad_total < demanda_total
+    
+    def hay_contingencia_fuente_principal(self, estado) -> bool:
+        for componente in estado.componentes.values():
+            tipo = componente.tipo.lower()
+            
+            if tipo in {"redelectrica", "emf", "subestacion"} and componente.estado in {"fallado", "mantenimiento", "desconectado"}:
+                return True
+            if tipo == "ups" and getattr(componente, "en_bateria", False):
+                return True
+            if tipo == "generador" and componente.estado == "activo":
+                return True
+        return False
 
     def determinar_estado_global(self, estado) -> str:
+        if self.carga_servida_kw(estado) <= 0.0:
+            return "fallado"
+        
         if self.hay_perdida_carga_critica(estado):
             return "fallado"
+        
+        if self.carga_servida_kw(estado) < self.demanda_total_kw(estado):
+            return "degradado"
+        
+        if self.hay_contingencia_fuente_principal(estado):
+            return "degradado"
+        
         if self.hay_perdida_redundancia(estado) or self.hay_capacidad_comprometida(estado):
             return "degradado"
         return "operativo"

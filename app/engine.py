@@ -111,6 +111,8 @@ class MotorSimulacion:
     def ejecutar(self, tiempo_fin_s: Optional[float] = None) -> dict:
         """
         Ejecuta la simulación completa o hasta un tiempo máximo.
+        Procesa en bloque todos los eventos del mismo instante temporal
+        para evitar estados transitorios incoherentes en snapshots.
         """
         self.recalcular_estado_completo()
         self.registrar_snapshot(motivo="inicio")
@@ -121,34 +123,65 @@ class MotorSimulacion:
             if tiempo_fin_s is not None and siguiente.tiempo_s > tiempo_fin_s:
                 break
 
-            evento = siguiente.evento
+            tiempo_lote = siguiente.tiempo_s
             estado_global_antes = self.estado.estado_global
+            self.estado.tiempo_actual_s = tiempo_lote
 
-            self.estado.tiempo_actual_s = evento.tiempo_s
+            eventos_lote = [siguiente.evento]
 
-            eventos_derivados = self.procesador_eventos.aplicar(evento, self.estado)
+            # sacar del heap todos los eventos ya programados para ese mismo instante
+            while self.hay_eventos_pendientes() and self._cola_eventos[0].tiempo_s == tiempo_lote:
+                eventos_lote.append(self.extraer_siguiente_evento().evento)
 
-            for evento_derivado in eventos_derivados:
-                self.insertar_evento(evento_derivado)
+            registros_pendientes = []
+
+            i = 0
+            while i < len(eventos_lote):
+                evento = eventos_lote[i]
+                eventos_derivados = self.procesador_eventos.aplicar(evento, self.estado)
+                registros_pendientes.append(evento)
+
+                for evento_derivado in eventos_derivados:
+                    if evento_derivado.tiempo_s == tiempo_lote:
+                        eventos_lote.append(evento_derivado)
+                    else:
+                        self.insertar_evento(evento_derivado)
+
+                i += 1
 
             eventos_redundancia = self.motor_reglas.reevaluar_grupos_redundancia(self.estado)
             for evento_redundancia in eventos_redundancia:
-                self.insertar_evento(evento_redundancia)
+                if evento_redundancia.tiempo_s == tiempo_lote:
+                    eventos_lote.append(evento_redundancia)
+                else:
+                    self.insertar_evento(evento_redundancia)
+
+            # si la reevaluación de redundancia añadió eventos en el mismo instante, procesarlos también
+            while i < len(eventos_lote):
+                evento = eventos_lote[i]
+                eventos_derivados = self.procesador_eventos.aplicar(evento, self.estado)
+                registros_pendientes.append(evento)
+
+                for evento_derivado in eventos_derivados:
+                    if evento_derivado.tiempo_s == tiempo_lote:
+                        eventos_lote.append(evento_derivado)
+                    else:
+                        self.insertar_evento(evento_derivado)
+
+                i += 1
 
             self.recalcular_estado_completo()
-
             estado_global_despues = self.estado.estado_global
 
-            self.registrar_evento(
-                evento=evento,
-                estado_global_antes=estado_global_antes,
-                estado_global_despues=estado_global_despues,
-            )
+            for evento in registros_pendientes:
+                self.registrar_evento(
+                    evento=evento,
+                    estado_global_antes=estado_global_antes,
+                    estado_global_despues=estado_global_despues,
+                )
 
-            self.registrar_snapshot(motivo=evento.tipo)
-
+            self.registrar_snapshot(motivo=f"lote_{int(tiempo_lote)}s")
         return self.obtener_resultados()
-
     # -----------------------------------------------------------------
     # 3. RECÁLCULO DEL SISTEMA
     # -----------------------------------------------------------------
