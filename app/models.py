@@ -29,12 +29,12 @@ class RedElectrica(ObjetoElectrico):
     nodo_origen: str
 
 @dataclass
-class EMF(ObjetoElectrico):
+class EMF(ObjetoElectrico): #Equipo de Media Falla, es un punto de conexión entre la red eléctrica y la infraestructura del CPD
     potencia_nominal_mva: float
     tension_kv: float
     lineas_entrantes: int
     lineas_salientes: int
-    posiciones_linea: int
+    posiciones_linea: int #Número total de posiciones para líneas, incluyendo las ocupadas por líneas entrantes y salientes
     doble_circuito: bool
     proteccion_87L: bool
 
@@ -47,6 +47,14 @@ class Subestacion(ObjetoElectrico):
     lineas_salientes: int
     num_transformadores: int
     esquema_barras: str
+    
+    #nuevos campos
+    subtipo: str = "general" #primaria, secundaria, cpd, distribucion
+    transformadores_ids: List[str] = field(default_factory=list)
+    rmu_ids: List[str] = field(default_factory=list) #RMU: Ring Main Unit, unidad de maniobra y protección que se instala en las líneas de distribución para mejorar la confiabilidad y facilitar el mantenimiento. Permite aislar secciones de la red sin interrumpir el suministro a otras áreas, lo que es especialmente útil en entornos críticos como los CPD.
+    cuadros_ids: List[str] = field(default_factory=list) #Cuadro eléctrico, es un punto de distribución que recibe la energía desde la subestación y la distribuye a los diferentes circuitos del CPD. Puede incluir protecciones, interruptores y dispositivos de control para gestionar el suministro eléctrico de manera segura y eficiente.
+    bloques_asociados_ids: List[str] = field(default_factory=list) #Bloque eléctrico, es un conjunto de componentes eléctricos que alimentan una zona o sala específica del CPD. Puede incluir transformadores, cuadros eléctricos, RMU y otros dispositivos
+    
 
 @dataclass
 class LineaElectrica(ObjetoElectrico):
@@ -66,6 +74,12 @@ class Transformador(ObjetoElectrico):
     impedancia_pct: float
     grupo_vectorial: str
     refrigeracion: str
+    
+    #Nuevos Campos
+    tecnologia: str = "general" # seco, aceite, inmerso en líquido
+    subestacion_id: Optional[str] = None
+    bloque_id: Optional[str] = None
+    modulo_id: Optional[str] = None
 
 @dataclass
 class Generador(ObjetoElectrico):
@@ -109,9 +123,14 @@ class RMU(ObjetoElectrico):
     tension_kv: float
     corriente_nominal_a: float
     bloque_asociado: str
+    
+    #nuevos Campos
+    anillo_id: Optional[str] = None
+    modulo_id: Optional[str] = None
+    
 
 @dataclass
-class STS(ObjetoElectrico):
+class STS(ObjetoElectrico): #Static Transfer Switch, es un dispositivo que permite conmutar automáticamente la alimentación eléctrica entre dos fuentes (por ejemplo, entre el suministro principal y una fuente de respaldo) sin interrupciones perceptibles para las cargas conectas.
     corriente_nominal_a: float
     tiempo_transferencia_ms: float
     fuente_preferida: str
@@ -143,6 +162,12 @@ class BloqueElectrico:
     criticidad: int
     componentes: list[str]
     cargas_asociadas: list[str]
+    
+    modulo_id: Optional[str] = None
+    rmu_id: Optional[str] = None
+    transformador_id: Optional[str] = None
+    ups_ids: List[str] = field(default_factory=list)
+    sts_ids: List[str] = field(default_factory=list)
 
 @dataclass
 class SalaIT:

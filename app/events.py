@@ -126,6 +126,14 @@ class ProcesadorEventos:
                     estado= estado
                 )
             )
+            
+        if componente.tipo.lower() in {"emf", "subestacion", "transformador"}:
+            derivados.extend(
+                self.motor_reglas.generar_eventos_caida_red(
+                    tiempo_s=evento.tiempo_s,
+                    estado=estado
+                )
+            )
         return derivados
     
     def _procesar_recuperacion_componente(self, evento: models.RecuperacionComponente, estado) -> List[models.Evento]:
