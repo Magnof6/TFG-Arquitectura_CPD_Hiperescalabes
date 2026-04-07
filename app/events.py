@@ -127,7 +127,7 @@ class ProcesadorEventos:
                 )
             )
             
-        if componente.tipo.lower() in {"emf", "subestacion"}:
+        if componente.tipo.lower() in {"emf", "subestacion","busbar"}:
             derivados.extend(
                 self.motor_reglas.generar_eventos_caida_red(
                     tiempo_s=evento.tiempo_s,

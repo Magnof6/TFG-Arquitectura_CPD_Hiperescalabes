@@ -508,6 +508,24 @@ def escenario_dc1_fallo_set_dc1():
     ]
     return estado, eventos
 
+def escenario_dc1_fallo_barra_11kv():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_barra_11kv_dc1",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="barra_11kv_dc1",
+            objetivo_tipo="Busbar",
+            descripcion="Fallo de la barra 11 kV del edificio DC_1",
+            severidad=5,
+            causa="Fallo interno en distribución 11 kV",
+            nuevo_estado="fallado",
+        )
+    ]
+    return estado, eventos
+
 
 def escenario_dc1_fallo_trafo_bloque():
     estado = _crear_escenario_tillion_dc1()
@@ -532,5 +550,6 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_sin_eventos": escenario_dc1_sin_eventos,
     "escenario_dc1_fallo_emf": escenario_dc1_fallo_emf,
     "escenario_dc1_fallo_set_dc1": escenario_dc1_fallo_set_dc1,
+    "escenario_dc1_fallo_barra_11kv": escenario_dc1_fallo_barra_11kv,
     "escenario_dc1_fallo_trafo_bloque": escenario_dc1_fallo_trafo_bloque,
 }

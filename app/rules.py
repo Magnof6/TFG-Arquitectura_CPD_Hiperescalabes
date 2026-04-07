@@ -38,8 +38,10 @@ class MotorReglas:
     def componente_puede_suministrar(self, componente) -> bool: # para fuentes, se considera que solo las activas pueden suministrar; las reservas no aportan capacidad pero sí pueden ser consideradas para conmutación.
         if componente is None:
             return False
-        if componente.tipo.lower() not in {"redelectrica", "generador"}:
+        if componente.tipo.lower() == "redelectrica":
             return componente.estado == "activo"
+        if componente.tipo.lower() == "generador":
+            return componente.estado in "activo"
         
         if componente.tipo.lower() == "ups":
             return componente.estado == "activo" and (
@@ -600,18 +602,71 @@ class MotorReglas:
         return eventos
 
     def generar_eventos_agotamiento_bateria(self, evento: models.AgotamientoBateria, estado):
-        grupo = self.buscar_grupo_de_componente(evento.ups_id, estado)
-        if grupo is not None and self.grupo_tiene_reserva_disponible(grupo, estado):
-            return []
-        
-        generadores_activos = [
-            c for c in estado.componentes.values()
-            if c.tipo.lower() == "generador" and c.estado == "activo"
+        #¿Hay alguna zona que dependa de la UPS?
+        zonas_afectadas = [
+            z for z in estado.zonas_it.values()
+            if z.alimentacion_preferida == evento.ups_id or z.alimentacion_respaldo == evento.ups_id
         ]
 
-        if generadores_activos:
-            return []
+        #1. intentar UPS de respaldo
+        eventos = []
+        ups_respaldo_programadas = set()
 
+        for zona in zonas_afectadas:
+            ups_respaldo_id = zona.alimentacion_respaldo
+            if ups_respaldo_id == evento.ups_id: #Si la UPS de respaldo es la misma que la que se ha agotado, no sirve como respaldo
+                continue 
+            ups_respaldo = estado.componentes.get(ups_respaldo_id)
+            if ups_respaldo is None:
+                continue
+            if ups_respaldo.estado != "activo":
+                continue
+            if ups_respaldo.id in ups_respaldo_programadas:
+                continue
+
+            eventos.append(
+                models.ConmutacionFuente(
+                    id=f"conm_respaldo_{ups_respaldo.id}_{int(evento.tiempo_s)}",
+                    tipo="ConmutacionFuente",
+                    tiempo_s=evento.tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=ups_respaldo.id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Conmutación a UPS de respaldo {ups_respaldo.id} por agotamiento de batería en {evento.ups_id}",
+                    severidad=3,
+                    fuente_origen=evento.ups_id,
+                    fuente_destino=ups_respaldo.id,
+                    tiempo_transferencia_ms=getattr(ups_respaldo, "tiempo_conmutacion_ms", 0.0),
+                    exito=True,
+                )
+            )
+            eventos.append(
+                models.AgotamientoBateria(
+                    id=f"agotamiento_respaldo_{ups_respaldo.id}_{int(evento.tiempo_s)}",
+                    tipo="AgotamientoBateria",
+                    tiempo_s=evento.tiempo_s + getattr(ups_respaldo, "autonomia_min_eol", 0.0) * 60.0,
+                    duracion_s=0.0,
+                    objetivo_id=ups_respaldo.id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Agotamiento previsto de batería en UPS  {ups_respaldo.id}",
+                    severidad=4,
+                    ups_id=ups_respaldo.id,
+                    autonomia_restante_min=0.0,
+                )
+            )
+            ups_respaldo_programadas.add(ups_respaldo.id)
+        if eventos:
+            return eventos
+        #2. ¿Existe un generador activo con ruta válida de esas zonas?
+        for comp in estado.componentes.values():
+            if comp.tipo.lower() == "generador" and comp.estado == "activo":
+                continue
+            for zona in zonas_afectadas:
+                rutas =  self.topologia.buscar_rutas(comp.id, zona.id)
+                for ruta in rutas:
+                    if self.ruta_es_operativa(ruta, estado) and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw:
+                        return []
+        #3. Si no hay respaldo posible, se genera la pérdida de suministro
         return [
             models.PerdidaSuministro(
                 id=f"loss_bat_{evento.ups_id}_{int(evento.tiempo_s)}",
@@ -644,20 +699,29 @@ class MotorReglas:
         ]
 
     def generar_eventos_entrada_generador(self, generador_id: str, tiempo_s: float, estado):
-        return [
-            models.RestablecimientoSuministro(
-                id=f"restore_gen_{generador_id}_{int(tiempo_s)}",
-                tipo="RestablecimientoSuministro",
-                tiempo_s=tiempo_s,
-                duracion_s=0.0,
-                objetivo_id=generador_id,
-                objetivo_tipo="generador",
-                descripcion=f"Entrada en servicio del generador {generador_id}",
-                severidad=2,
-                nivel="sistema",
-                carga_recuperada_kw=0.0,
-            )
-        ]
+        generador = estado.componentes.get(generador_id)
+        if generador is None or generador.estado != "activo":
+            return []
+        
+        for zona in estado.zonas_it.values():
+            rutas = self.topologia.buscar_rutas(generador_id, zona.id)
+            for ruta in rutas:
+                if self.ruta_es_operativa(ruta, estado) and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw:
+                    return [
+                        models.RestablecimientoSuministro(
+                            id=f"restore_gen_{generador_id}_{int(tiempo_s)}",
+                            tipo="RestablecimientoSuministro",
+                            tiempo_s=tiempo_s,
+                            duracion_s=0.0,
+                            objetivo_id=generador_id,
+                            objetivo_tipo="generador",
+                            descripcion=f"Entrada en servicio del generador {generador_id}",
+                            severidad=2,
+                            nivel="sistema",
+                            carga_recuperada_kw=0.0,
+                        )
+                    ]
+        return []
 
 
     # ---------------------------------------------------------------------
