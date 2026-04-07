@@ -168,7 +168,19 @@ def _crear_escenario_tillion_dc1():
         num_transformadores=3,
         esquema_barras="doble",
     )
-
+    
+    barra_11kv = Busbar(
+        id="barra_11kv_dc1",
+        nombre="Barra 11 kV DC_1",
+        tipo="Busbar",
+        estado="activo",
+        criticidad=5,
+        tiempo_recuperacion_s=60,
+        es_reserva=False,
+        tension_v=11000,
+        corriente_nominal_a=6300,
+        capacidad_kw=12000,
+    )
     # =====================================================
     # 2) NODOS BASE
     # =====================================================
@@ -181,6 +193,7 @@ def _crear_escenario_tillion_dc1():
         trafo_400_66_2.id: trafo_400_66_2,
         trafo_400_66_3.id: trafo_400_66_3,
         set_dc1.id: set_dc1,
+        barra_11kv.id: barra_11kv,
     }
 
     conexiones = [
@@ -192,6 +205,7 @@ def _crear_escenario_tillion_dc1():
         ConexionElectrica("trafo_400_66_1", "set_dc1_66_11"),
         ConexionElectrica("trafo_400_66_2", "set_dc1_66_11"),
         ConexionElectrica("trafo_400_66_3", "set_dc1_66_11"),
+        ConexionElectrica("set_dc1_66_11", "barra_11kv_dc1"),
     ]
 
     grupos = {}
@@ -220,7 +234,7 @@ def _crear_escenario_tillion_dc1():
             modulo_id=f"modulo_it_{m}",
         )
         nodos[rmu_modulo.id] = rmu_modulo
-        conexiones.append(ConexionElectrica("set_dc1_66_11", rmu_modulo.id))
+        conexiones.append(ConexionElectrica("barra_11kv_dc1", rmu_modulo.id))
 
         # 7 bloques por módulo: 6 activos + 1 reserva
         trafos_modulo = []
@@ -421,8 +435,8 @@ def _crear_escenario_tillion_dc1():
         )
         nodos[gen.id] = gen
 
-        # Simplificación: los generadores alimentan la SET 66/11 / barra 11 kV del edificio
-        conexiones.append(ConexionElectrica(gen.id, "set_dc1_66_11", tipo="respaldo"))
+        # Simplificación: los generadores alimentan la SET 66/11 / barra 11 kV del edificio ESTA SIMPLIFICACIÓN YA NO SIRVE PORQUE LOS GENERADORES NO SE CONECTAN DIRECTAMENTE A LA SUBESTACION
+        conexiones.append(ConexionElectrica(gen.id, "barra_11kv_dc1", tipo="respaldo"))
 
     # =====================================================
     # 5) TOPOLOGÍA Y ESTADO
