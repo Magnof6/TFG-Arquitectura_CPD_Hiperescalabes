@@ -15,6 +15,11 @@ from models import (
     FalloComponente,
     GrupoRedundancia,
     Generador,
+    RecuperacionComponente,
+    ParadaGenerador,
+    Sobrecarga,
+    ConmutacionFuente,
+    SalidaReserva,
 )
 from topology import TopologiaSistema
 from engine import EstadoSimulacion
@@ -545,6 +550,226 @@ def escenario_dc1_fallo_trafo_bloque():
     ]
     return estado, eventos
 
+def escenario_dc1_fallo_y_recuperacion_emf():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_emf",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF",
+            severidad=5,
+            causa="Fallo en infraestructura AT",
+            nuevo_estado="fallado",
+        ),
+        RecuperacionComponente(
+            id="recuperacion_emf",
+            tipo="RecuperacionComponente",
+            tiempo_s=100,
+            duracion_s=0,
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Recuperación del EMF",
+            severidad=2,
+            causa="Restablecimiento de infraestructura AT",
+            nuevo_estado="activo",
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_emf_y_parada_generador():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_emf",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF",
+            severidad=5,
+            causa="Fallo en infraestructura AT",
+            nuevo_estado="fallado",
+        ),
+        ParadaGenerador(
+            id="parada_gen_dc1_1",
+            tipo="ParadaGenerador",
+            tiempo_s=60,
+            duracion_s=0,
+            objetivo_id="gen_dc1_1",
+            objetivo_tipo="Generador",
+            descripcion="Parada del generador gen_dc1_1",
+            severidad=3,
+            generador_id="gen_dc1_1",
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_sobrecarga():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        Sobrecarga(
+            id="sobrecarga_dc1",
+            tipo="Sobrecarga",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="dc1",
+            objetivo_tipo="Sistema",
+            descripcion="Sobrecarga forzada del sistema DC_1",
+            severidad=4,
+            demanda_kw=40000.0,
+            capacidad_disponible_kw=30000.0,
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_conmutacion_ups():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        ConmutacionFuente(
+            id="fallo_conmutacion_ups_m1_1_a",
+            tipo="ConmutacionFuente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="ups_m1_1_a",
+            objetivo_tipo="ups",
+            descripcion="Fallo de conmutación a UPS ups_m1_1_a",
+            severidad=5,
+            fuente_origen="red",
+            fuente_destino="ups_m1_1_a",
+            tiempo_transferencia_ms=10.0,
+            exito=False,
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_salida_reserva_trafo():
+    estado = _crear_escenario_tillion_dc1()
+
+    # activar manualmente la reserva para que tenga sentido sacarla
+    estado.componentes["trafo_m1_7"].estado = "activo"
+
+    eventos = [
+        SalidaReserva(
+            id="salida_reserva_trafo_m1_7",
+            tipo="SalidaReserva",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="grupo_trafos_modulo_1",
+            objetivo_tipo="transformador",
+            descripcion="Salida de reserva del trafo m1_7",
+            severidad=2,
+            componente_reserva_id="trafo_m1_7",
+        ),
+    ]
+    return estado, eventos
+
+
+def escenario_dc1_fallo_ups_a_bloque():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_ups_m1_1_a",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="ups_m1_1_a",
+            objetivo_tipo="UPS",
+            descripcion="Fallo de UPS A del bloque m1_1",
+            severidad=5,
+            causa="Fallo interno UPS",
+            nuevo_estado="fallado",
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_ups_a_y_b_bloque():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_ups_m1_1_a",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="ups_m1_1_a",
+            objetivo_tipo="UPS",
+            descripcion="Fallo de UPS A del bloque m1_1",
+            severidad=5,
+            causa="Fallo interno UPS",
+            nuevo_estado="fallado",
+        ),
+        FalloComponente(
+            id="fallo_ups_m1_1_b",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="ups_m1_1_b",
+            objetivo_tipo="UPS",
+            descripcion="Fallo de UPS B del bloque m1_1",
+            severidad=5,
+            causa="Fallo interno UPS",
+            nuevo_estado="fallado",
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_sts_bloque():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_sts_m1_1",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="sts_m1_1",
+            objetivo_tipo="STS",
+            descripcion="Fallo del STS del bloque m1_1",
+            severidad=5,
+            causa="Fallo interno STS",
+            nuevo_estado="fallado",
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_rmu_modulo():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_rmu_modulo_1",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="rmu_modulo_1",
+            objetivo_tipo="RMU",
+            descripcion="Fallo de la RMU del módulo 1",
+            severidad=5,
+            causa="Fallo en distribución 11 kV del módulo 1",
+            nuevo_estado="fallado",
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_rmu_bloque():
+    estado = _crear_escenario_tillion_dc1()
+    eventos = [
+        FalloComponente(
+            id="fallo_rmu_m1_1",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="rmu_m1_1",
+            objetivo_tipo="RMU",
+            descripcion="Fallo de la RMU del bloque m1_1",
+            severidad=5,
+            causa="Fallo en distribución 11 kV del bloque m1_1",
+            nuevo_estado="fallado",
+        ),
+    ]
+    return estado, eventos
 
 ESCENARIOS_DC1 = {
     "escenario_dc1_sin_eventos": escenario_dc1_sin_eventos,
@@ -552,4 +777,14 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_fallo_set_dc1": escenario_dc1_fallo_set_dc1,
     "escenario_dc1_fallo_barra_11kv": escenario_dc1_fallo_barra_11kv,
     "escenario_dc1_fallo_trafo_bloque": escenario_dc1_fallo_trafo_bloque,
+    "escenario_dc1_fallo_y_recuperacion_emf": escenario_dc1_fallo_y_recuperacion_emf,
+    "escenario_dc1_fallo_emf_y_parada_generador": escenario_dc1_fallo_emf_y_parada_generador,
+    "escenario_dc1_sobrecarga": escenario_dc1_sobrecarga,
+    "escenario_dc1_fallo_conmutacion_ups": escenario_dc1_fallo_conmutacion_ups,
+    "escenario_dc1_salida_reserva_trafo": escenario_dc1_salida_reserva_trafo,
+    "escenario_dc1_fallo_ups_a_bloque": escenario_dc1_fallo_ups_a_bloque,
+    "escenario_dc1_fallo_ups_a_y_b_bloque": escenario_dc1_fallo_ups_a_y_b_bloque,
+    "escenario_dc1_fallo_sts_bloque": escenario_dc1_fallo_sts_bloque,
+    "escenario_dc1_fallo_rmu_modulo": escenario_dc1_fallo_rmu_modulo,
+    "escenario_dc1_fallo_rmu_bloque": escenario_dc1_fallo_rmu_bloque,
 }
