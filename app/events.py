@@ -314,14 +314,29 @@ class ProcesadorEventos:
         
         if generador.estado not in {"activo", "reserva"}:
             return derivados
+        
         if evento.arranque_exitoso:
             generador.estado = "activo"
             if hasattr(generador, "arrancado"):
                 generador.arrancado = True
-            for comp in estado.componentes.values():
-                if comp.tipo.lower() =="ups":
-                    comp.en_bateria = False
-                    comp.alimentando_zona = False
+            
+            #comprobar si este generador realmente puede suministrar
+            puede_suministrar = False
+
+            for zona in estado.zonas_it.values():
+                rutas = self.motor_reglas.topologia.buscar_rutas(generador.id, zona.id)
+                for ruta in rutas:
+                    if (
+                        self.motor_reglas.ruta_es_operativa(ruta, estado) and self.motor_reglas.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw
+                    ):
+                        puede_suministrar = True
+                        break
+            #solo si realmente puede alimentar, as UPS salen de bateria
+            if puede_suministrar:
+                for comp in estado.componentes.values():
+                    if comp.tipo.lower() =="ups":
+                        comp.en_bateria = False
+                        comp.alimentando_zona = False
             
             derivados.extend(
                 self.motor_reglas.generar_eventos_entrada_generador(
