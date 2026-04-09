@@ -14,8 +14,8 @@ Definir Topología del sistema --> Hecho 26/03/2026
   -Qué elementos son redundantes
   -Que bloques forman un  N+1
   -¿Añadir a los objetos origen/destino?
-Diseñar motor de simulación
-Definir algoritmo principal
+Diseñar motor de simulación --> hecho
+Definir algoritmo principal --> hecho 
   -Cargar componentes
   -Cargar conexiones
   -Cargar eventos
@@ -24,7 +24,7 @@ Definir algoritmo principal
   -Recalcular el estadodel sistema
   -Comprobar si la carga sigue alimentada
   -Registrar resultados
-Definir salidas y métricas
+Definir salidas y métricas --> hecho 
   -Carga total servida
   -Carga perdida
   -Capacidad disponible
@@ -32,4 +32,7 @@ Definir salidas y métricas
   -nº de componentes fallados
   -uso de reserva
   - estado final del sistema (operativo, degradado, fallido)
-Elegir escenarios de prueba
+Elegir escenarios de prueba --> hecho
+
+Probar escenarios para ir eliminando bugs
+
