@@ -147,7 +147,10 @@ class ProcesadorEventos:
                     )
                 )
             elif subtipo == "it":
-                pass
+                self.motor_reglas.generar_evento_conmutacion_bloque(
+                    trafo_id = componente.id,
+                    estado = estado
+                )
         return derivados
     
     def _procesar_recuperacion_componente(self, evento: models.RecuperacionComponente, estado) -> List[models.Evento]:

@@ -66,7 +66,13 @@ class TopologiaSistema:
             self._reconstruir_indices()
 
         return encontrada
-
+    
+    def reemplazar_conexion(self, origen_id: str, destino_antiguo: str, destino_nuevo: str):
+        for conexion in self.conexiones:
+            if conexion.origen_id == origen_id and conexion.destino_id == destino_antiguo:
+                conexion.destino_id = destino_nuevo
+                return True
+        return False
     # ---------------------------------------------------------------------
     # 2. CONSULTAS BÁSICAS
     # ---------------------------------------------------------------------

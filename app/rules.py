@@ -41,7 +41,7 @@ class MotorReglas:
         if componente.tipo.lower() == "redelectrica":
             return componente.estado == "activo"
         if componente.tipo.lower() == "generador":
-            return componente.estado in "activo"
+            return componente.estado == "activo"
         
         if componente.tipo.lower() == "ups":
             return componente.estado == "activo" and (
@@ -723,7 +723,42 @@ class MotorReglas:
                     ]
         return []
 
+    def generar_evento_conmutacion_bloque(self, trafo_id: str, estado):
+        trafo = estado.componentes.get(trafo_id)
+        if trafo is None:
+            return
+        modulo = trafo.modulo_id.split("_")[-1] 
+        bloque = trafo.bloque_id.split("_")[-1]
 
+        #Si el bloque ya es de reserva, no hace falta hacer nada
+        if bloque == "7":
+            return
+
+        trafo_reserva_id = f"trafo_m{modulo}_7"
+        rmu_id = f"rmu_m{modulo}_{bloque}"
+
+        # 1. RMU → TRAFO
+        self.topologia.reemplazar_conexion(rmu_id, trafo_id, trafo_reserva_id)
+
+        # 2. TRAFO → UPS
+        self.topologia.agregar_conexion(
+            models.ConexionElectrica(
+                origen_id=trafo_reserva_id,
+                destino_id=f"ups_m{modulo}_{bloque}_a",
+                tipo="respaldo",
+            )
+        )
+        self.topologia.agregar_conexion(
+            models.ConexionElectrica(
+                origen_id=trafo_reserva_id,
+                destino_id=f"ups_m{modulo}_{bloque}_b",
+                tipo="respaldo",
+            )
+        )
+
+        # 3) eliminar las conexiones antiguas del trafo fallado a esas UPS
+        self.topologia.eliminar_conexion(trafo_id, f"ups_m{modulo}_{bloque}_a")
+        self.topologia.eliminar_conexion(trafo_id, f"ups_m{modulo}_{bloque}_b")
     # ---------------------------------------------------------------------
     # 7. ESTADO GLOBAL
     # ---------------------------------------------------------------------
