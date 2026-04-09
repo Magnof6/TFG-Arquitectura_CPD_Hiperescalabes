@@ -659,7 +659,7 @@ class MotorReglas:
             return eventos
         #2. ¿Existe un generador activo con ruta válida de esas zonas?
         for comp in estado.componentes.values():
-            if comp.tipo.lower() == "generador" and comp.estado == "activo":
+            if comp.tipo.lower() != "generador" or comp.estado != "activo":
                 continue
             for zona in zonas_afectadas:
                 rutas =  self.topologia.buscar_rutas(comp.id, zona.id)
@@ -731,7 +731,11 @@ class MotorReglas:
     def hay_perdida_carga_critica(self, estado) -> bool:
         cargas = list(getattr(estado, "zonas_it", {}).values())
         for carga in cargas:
-            if getattr(carga, "prioridad", 0) >= 4 and carga.estado == "sin_alimentacion":
+            if (
+                getattr(carga, "demanda_kw", 0.0) > 0.0
+                and getattr(carga, "prioridad", 0) >= 4
+                and carga.estado == "sin_alimentacion"
+            ):
                 return True
         return False
 
