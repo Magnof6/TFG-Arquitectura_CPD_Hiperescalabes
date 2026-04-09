@@ -179,7 +179,7 @@ class ProcesadorEventos:
         )
 
         # Si vuelve la red, puede intentarse retorno a fuente preferida
-        if componente.tipo.lower() == "redelectrica":
+        if componente.tipo.lower() in {"redelectrica", "emf", "subestacion", "busbar"}:
             derivados.extend(
                 self.motor_reglas.generar_eventos_retorno_red(
                     tiempo_s=evento.tiempo_s,
@@ -229,6 +229,18 @@ class ProcesadorEventos:
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
+        for comp in estado.componentes.values():
+            if comp.tipo.lower() == "ups":
+                comp.en_bateria = False
+                comp.alimentando_zona = False
+
+            if comp.tipo.lower() == "generador":
+                # si quieres retorno automático a red
+                if comp.estado == "activo":
+                    if getattr(comp, "es_reserva", False):
+                        comp.estado = "reserva"
+                    else:
+                        comp.estado = "desconectado"
         return []
     
     # -------------------------------------------------------------------------
