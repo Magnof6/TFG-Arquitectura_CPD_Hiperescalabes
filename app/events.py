@@ -229,18 +229,22 @@ class ProcesadorEventos:
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
-        for comp in estado.componentes.values():
-            if comp.tipo.lower() == "ups":
-                comp.en_bateria = False
-                comp.alimentando_zona = False
+        if evento.nivel == "entrada_generador":
+            return []
+        if evento.nivel == "retorno_red":
+            for comp in estado.componentes.values():
+                if comp.tipo.lower() == "ups":
+                    comp.en_bateria = False
+                    comp.alimentando_zona = False
 
-            if comp.tipo.lower() == "generador":
-                # si quieres retorno automático a red
-                if comp.estado == "activo":
-                    if getattr(comp, "es_reserva", False):
-                        comp.estado = "reserva"
-                    else:
-                        comp.estado = "desconectado"
+                if comp.tipo.lower() == "generador":
+                    # si quieres retorno automático a red
+                    if comp.estado == "activo":
+                        if getattr(comp, "es_reserva", False):
+                            comp.estado = "reserva"
+                        else:
+                            comp.estado = "desconectado"
+            return []
         return []
     
     # -------------------------------------------------------------------------

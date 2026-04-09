@@ -503,7 +503,27 @@ class MotorReglas:
     def generar_eventos_retorno_red(self, tiempo_s: float, estado):
         eventos = []
         for componente in estado.componentes.values():
-            if componente.tipo.lower() in {"ups", "generador"} and componente.estado == "activo":
+            if componente.tipo.lower() == "ups":
+                if componente.estado == "activo" and (
+                    getattr(componente, "en_bateria", False) or
+                    getattr(componente, "alimentando_zona", False)
+                ):
+                    eventos.append(
+                        models.RestablecimientoSuministro(
+                            id=f"restore_{componente.id}_{int(tiempo_s)}",
+                            tipo="RestablecimientoSuministro",
+                            tiempo_s=tiempo_s,
+                            duracion_s=0.0,
+                            objetivo_id=componente.id,
+                            objetivo_tipo=componente.tipo,
+                            descripcion=f"Retorno a fuente preferida; salida de servicio de {componente.id}",
+                            severidad=1,
+                            nivel="retorno_red",
+                            carga_recuperada_kw=self.obtener_capacidad_componente_kw(componente),
+                        )
+                    )
+        
+            elif componente.tipo.lower() == "generador" and componente.estado == "activo":
                 eventos.append(
                     models.RestablecimientoSuministro(
                         id=f"restore_{componente.id}_{int(tiempo_s)}",
@@ -512,12 +532,13 @@ class MotorReglas:
                         duracion_s=0.0,
                         objetivo_id=componente.id,
                         objetivo_tipo=componente.tipo,
-                        descripcion=f"Retorno a fuente preferida tras recuperación de red",
+                        descripcion=f"Retorno a fuente preferida; salida de servicio de {componente.id}",
                         severidad=1,
-                        nivel="sistema",
-                        carga_recuperada_kw=self.obtener_capacidad_componente_kw(componente),
+                        nivel="retorno_red",
+                        carga_recuperada_kw=0.0,
                     )
                 )
+
         return eventos
 
     def generar_eventos_fallo_ups(self, ups_id: str, tiempo_s: float, estado, estado_anterior: str = "activo"):
