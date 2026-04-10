@@ -57,3 +57,158 @@ Conexion("salaIT_1", "carga_1")
 Generadores en paralelo
 Conexion("generador_1", "cuadro_bt")
 Conexion("generador_2", "cuadro_bt")
+
+Dia 10/04/26
+
+[Red Eléctrica 400 kV]
+        |
+        v
+     [EMF 400 kV]
+        |
+        v
+[SET CPD Tillion 400/66]
+   |        |        |
+   v        v        v
+[T1]      [T2]      [T3]    (400/66 kV)
+   \        |        /
+    \       |       /
+     \      |      /
+      v     v     v
+    [SET DC_1 66/11]
+             |
+             v
+      [Barra 11 kV DC_1]
+        /        |        \
+       v         v         v
+ [RMU Mod 1] [RMU Mod 2] [RMU Mod 3]
+
+Para cada módulo:
+[RMU Mod m]
+   ├─[RMU m_1]─[Trafo m_1]─┬─[UPS A]─┐
+   │                        └─[UPS B]─┤
+   │                                  v
+   │                               [STS]
+   │                                  |
+   │                               [BUS]
+   │                                  |
+   │                               [Sala]
+   │                                  |
+   │                               [Zona]
+   │
+   ├─[RMU m_2]─[Trafo m_2]─┬─[UPS A]─┐
+   │                        └─[UPS B]─┤
+   │                                  v
+   │                               [STS]─[BUS]─[Sala]─[Zona]
+   │
+   ├─[RMU m_3] ...
+   ├─[RMU m_4] ...
+   ├─[RMU m_5] ...
+   ├─[RMU m_6] ...
+   └─[RMU m_7] ... (reserva)
+
+Generación de respaldo modelada:
+[Gen 1] \
+[Gen 2]  \
+ ...      >---- [Barra 11 kV DC_1]   (respaldo en modelo)
+[Gen 14] /
+
+
+
+RED ELÉCTRICA PRINCIPAL 400 kV
+└── EMF 400 kV
+    └── SET CPD Tillion 400/66 kV
+        ├── Trafo 400/66 kV 1
+        ├── Trafo 400/66 kV 2
+        └── Trafo 400/66 kV 3
+            └── SET DC_1 66/11 kV
+                └── Barra 11 kV DC_1
+                    ├── RMU módulo IT 1
+                    │   ├── RMU m1_1
+                    │   │   └── Trafo m1_1 11/0.415
+                    │   │       ├── UPS A m1_1
+                    │   │       ├── UPS B m1_1
+                    │   │       └── STS m1_1
+                    │   │           └── Bus m1_1
+                    │   │               └── Sala m1_1
+                    │   │                   └── Zona m1_1
+                    │   ├── RMU m1_2
+                    │   │   └── Trafo m1_2 11/0.415
+                    │   │       ├── UPS A m1_2
+                    │   │       ├── UPS B m1_2
+                    │   │       └── STS m1_2
+                    │   │           └── Bus m1_2
+                    │   │               └── Sala m1_2
+                    │   │                   └── Zona m1_2
+                    │   ├── RMU m1_3
+                    │   │   └── Trafo m1_3 11/0.415
+                    │   │       ├── UPS A m1_3
+                    │   │       ├── UPS B m1_3
+                    │   │       └── STS m1_3
+                    │   │           └── Bus m1_3
+                    │   │               └── Sala m1_3
+                    │   │                   └── Zona m1_3
+                    │   ├── RMU m1_4
+                    │   │   └── Trafo m1_4 11/0.415
+                    │   │       ├── UPS A m1_4
+                    │   │       ├── UPS B m1_4
+                    │   │       └── STS m1_4
+                    │   │           └── Bus m1_4
+                    │   │               └── Sala m1_4
+                    │   │                   └── Zona m1_4
+                    │   ├── RMU m1_5
+                    │   │   └── Trafo m1_5 11/0.415
+                    │   │       ├── UPS A m1_5
+                    │   │       ├── UPS B m1_5
+                    │   │       └── STS m1_5
+                    │   │           └── Bus m1_5
+                    │   │               └── Sala m1_5
+                    │   │                   └── Zona m1_5
+                    │   ├── RMU m1_6
+                    │   │   └── Trafo m1_6 11/0.415
+                    │   │       ├── UPS A m1_6
+                    │   │       ├── UPS B m1_6
+                    │   │       └── STS m1_6
+                    │   │           └── Bus m1_6
+                    │   │               └── Sala m1_6
+                    │   │                   └── Zona m1_6
+                    │   └── RMU m1_7 [RESERVA]
+                    │       └── Trafo m1_7 11/0.415 [RESERVA]
+                    │           ├── UPS A m1_7 [RESERVA]
+                    │           ├── UPS B m1_7 [RESERVA]
+                    │           └── STS m1_7
+                    │               └── Bus m1_7
+                    │                   └── Sala m1_7
+                    │                       └── Zona m1_7
+                    │
+                    ├── RMU módulo IT 2
+                    │   ├── RMU m2_1 -> Trafo m2_1 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m2_2 -> Trafo m2_2 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m2_3 -> Trafo m2_3 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m2_4 -> Trafo m2_4 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m2_5 -> Trafo m2_5 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m2_6 -> Trafo m2_6 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   └── RMU m2_7 [RESERVA] -> Trafo m2_7 [RESERVA] -> UPS A/B [RESERVA] -> STS -> Bus -> Sala -> Zona
+                    │
+                    ├── RMU módulo IT 3
+                    │   ├── RMU m3_1 -> Trafo m3_1 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m3_2 -> Trafo m3_2 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m3_3 -> Trafo m3_3 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m3_4 -> Trafo m3_4 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m3_5 -> Trafo m3_5 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   ├── RMU m3_6 -> Trafo m3_6 -> UPS A/B -> STS -> Bus -> Sala -> Zona
+                    │   └── RMU m3_7 [RESERVA] -> Trafo m3_7 [RESERVA] -> UPS A/B [RESERVA] -> STS -> Bus -> Sala -> Zona
+                    │
+                    ├── Generador DC1 1   [RESPALDO]
+                    ├── Generador DC1 2   [RESPALDO]
+                    ├── Generador DC1 3   [RESPALDO]
+                    ├── Generador DC1 4   [RESPALDO]
+                    ├── Generador DC1 5   [RESPALDO]
+                    ├── Generador DC1 6   [RESPALDO]
+                    ├── Generador DC1 7   [RESPALDO]
+                    ├── Generador DC1 8   [RESPALDO]
+                    ├── Generador DC1 9   [RESPALDO]
+                    ├── Generador DC1 10  [RESPALDO]
+                    ├── Generador DC1 11  [RESPALDO]
+                    ├── Generador DC1 12  [RESPALDO]
+                    ├── Generador DC1 13  [RESPALDO]
+                    └── Generador DC1 14  [RESPALDO]
