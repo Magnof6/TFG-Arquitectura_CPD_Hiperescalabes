@@ -3,8 +3,8 @@
 
 from rules import MotorReglas
 from engine import MotorSimulacion
-import scenarios2
-import scenarioTillion
+#import scenarios2
+#import scenarioTillion
 import scenario3
 
 

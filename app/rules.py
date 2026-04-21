@@ -704,6 +704,50 @@ class MotorReglas:
         ]
 
     def generar_eventos_fallo_conmutacion(self, evento: models.ConmutacionFuente, estado):
+        eventos = []
+
+        # Caso especial: fallo al transferir a una UPS preferida.
+        if evento.objetivo_tipo.lower() == "ups":
+            ups_fallida_id = evento.fuente_destino
+
+            zonas_afectadas = [
+                z for z in estado.zonas_it.values()
+                if z.alimentacion_preferida == ups_fallida_id
+            ]
+
+            for zona in zonas_afectadas:
+                ups_respaldo_id = zona.alimentacion_respaldo
+                ups_respaldo = estado.componentes.get(ups_respaldo_id)
+
+                if (
+                    ups_respaldo is not None
+                    and ups_respaldo.estado == "activo"
+                    and ups_respaldo.id != ups_fallida_id
+                ):
+                    eventos.append(
+                        models.ConmutacionFuente(
+                            id=f"fallback_{ups_fallida_id}_{ups_respaldo.id}_{int(evento.tiempo_s)}",
+                            tipo="ConmutacionFuente",
+                            tiempo_s=evento.tiempo_s,
+                            duracion_s=0.0,
+                            objetivo_id=ups_respaldo.id,
+                            objetivo_tipo="ups",
+                            descripcion=(
+                                f"Conmutación a UPS de respaldo {ups_respaldo.id} "
+                                f"tras fallo de transferencia a {ups_fallida_id}"
+                            ),
+                            severidad=3,
+                            fuente_origen=evento.fuente_origen,
+                            fuente_destino=ups_respaldo.id,
+                            tiempo_transferencia_ms=getattr(ups_respaldo, "tiempo_conmutacion_ms", 0.0),
+                            exito=True,
+                        )
+                    )
+
+            if eventos:
+                return eventos
+
+        # Si no hay respaldo posible, se registra pérdida
         return [
             models.PerdidaSuministro(
                 id=f"loss_transfer_{evento.objetivo_id}_{int(evento.tiempo_s)}",
@@ -718,7 +762,7 @@ class MotorReglas:
                 carga_afectada_kw=0.0,
             )
         ]
-
+    
     def generar_eventos_entrada_generador(self, generador_id: str, tiempo_s: float, estado):
         generador = estado.componentes.get(generador_id)
         if generador is None or generador.estado != "activo":

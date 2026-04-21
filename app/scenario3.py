@@ -440,7 +440,7 @@ def _crear_escenario_tillion_dc1():
         )
         nodos[gen.id] = gen
 
-        # Simplificación: los generadores alimentan la SET 66/11 / barra 11 kV del edificio ESTA SIMPLIFICACIÓN YA NO SIRVE PORQUE LOS GENERADORES NO SE CONECTAN DIRECTAMENTE A LA SUBESTACION
+        # Simplificación: los generadores alimentan la  barra 11 kV del edificio directamente
         conexiones.append(ConexionElectrica(gen.id, "barra_11kv_dc1", tipo="respaldo"))
 
     # =====================================================
@@ -605,6 +605,7 @@ def escenario_dc1_fallo_emf_y_parada_generador():
             descripcion="Parada del generador gen_dc1_1",
             severidad=3,
             generador_id="gen_dc1_1",
+            motivo = "fallo al suministrar diesel al equipo"
         ),
     ]
     return estado, eventos
@@ -664,43 +665,72 @@ def escenario_dc1_salida_reserva_trafo():
             descripcion="Salida de reserva del trafo m1_7",
             severidad=2,
             componente_reserva_id="trafo_m1_7",
+            motivo ="aun no se ha establecido un motivo pare este escenario"
         ),
     ]
     return estado, eventos
 
 
-def escenario_dc1_fallo_ups_a_bloque():
+def escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
         FalloComponente(
-            id="fallo_ups_m1_1_a",
+            id="fallo_emf",
             tipo="FalloComponente",
             tiempo_s=10,
             duracion_s=0,
-            objetivo_id="ups_m1_1_a",
-            objetivo_tipo="UPS",
-            descripcion="Fallo de UPS A del bloque m1_1",
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF",
             severidad=5,
-            causa="Fallo interno UPS",
+            causa="Fallo en infraestructura AT",
             nuevo_estado="fallado",
+        ),
+        ConmutacionFuente(
+            id="fallo_conmutacion_ups_m1_1_a",
+            tipo="ConmutacionFuente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="ups_m1_1_a",
+            objetivo_tipo="ups",
+            descripcion="Fallo de conmutación a UPS ups_m1_1_a del bloque m1_1",
+            severidad=5,
+            fuente_origen="red",
+            fuente_destino="ups_m1_1_a",
+            tiempo_transferencia_ms=10.0,
+            exito=False,
         ),
     ]
     return estado, eventos
 
-def escenario_dc1_fallo_ups_a_y_b_bloque():
+def escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_y_ups_b_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
         FalloComponente(
-            id="fallo_ups_m1_1_a",
+            id="fallo_emf",
             tipo="FalloComponente",
             tiempo_s=10,
             duracion_s=0,
-            objetivo_id="ups_m1_1_a",
-            objetivo_tipo="UPS",
-            descripcion="Fallo de UPS A del bloque m1_1",
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF",
             severidad=5,
-            causa="Fallo interno UPS",
+            causa="Fallo en infraestructura AT",
             nuevo_estado="fallado",
+        ),
+        ConmutacionFuente(
+            id="fallo_conmutacion_ups_m1_1_a",
+            tipo="ConmutacionFuente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="ups_m1_1_a",
+            objetivo_tipo="ups",
+            descripcion="Fallo de conmutación a UPS ups_m1_1_a del bloque m1_1",
+            severidad=5,
+            fuente_origen="red",
+            fuente_destino="ups_m1_1_a",
+            tiempo_transferencia_ms=10.0,
+            exito=False,
         ),
         FalloComponente(
             id="fallo_ups_m1_1_b",
@@ -711,7 +741,7 @@ def escenario_dc1_fallo_ups_a_y_b_bloque():
             objetivo_tipo="UPS",
             descripcion="Fallo de UPS B del bloque m1_1",
             severidad=5,
-            causa="Fallo interno UPS",
+            causa="Fallo interno UPS de respaldo",
             nuevo_estado="fallado",
         ),
     ]
@@ -782,8 +812,8 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_sobrecarga": escenario_dc1_sobrecarga,
     "escenario_dc1_fallo_conmutacion_ups": escenario_dc1_fallo_conmutacion_ups,
     "escenario_dc1_salida_reserva_trafo": escenario_dc1_salida_reserva_trafo,
-    "escenario_dc1_fallo_ups_a_bloque": escenario_dc1_fallo_ups_a_bloque,
-    "escenario_dc1_fallo_ups_a_y_b_bloque": escenario_dc1_fallo_ups_a_y_b_bloque,
+    "escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque": escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque,
+    "escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_y_ups_b_bloque": escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_y_ups_b_bloque,
     "escenario_dc1_fallo_sts_bloque": escenario_dc1_fallo_sts_bloque,
     "escenario_dc1_fallo_rmu_modulo": escenario_dc1_fallo_rmu_modulo,
     "escenario_dc1_fallo_rmu_bloque": escenario_dc1_fallo_rmu_bloque,

@@ -226,6 +226,10 @@ class ProcesadorEventos:
         )
     
     def _procesar_perdida_suministro(self, evento: models.PerdidaSuministro, estado) -> List[models.Evento]:
+        if evento.objetivo_tipo.lower() == "ups":
+            for zona in estado.zonas_it.values():
+                if zona.alimentacion_preferida == evento.objetivo_id:
+                    zona.estado = "sin_alimentacion"
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
