@@ -612,6 +612,11 @@ def escenario_dc1_fallo_emf_y_parada_generador():
 
 def escenario_dc1_sobrecarga():
     estado = _crear_escenario_tillion_dc1()
+
+    carga_kw = 40000.0
+    capacidad_disponible_kw = 30000.0
+    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
+
     eventos = [
         Sobrecarga(
             id="sobrecarga_dc1",
@@ -622,8 +627,9 @@ def escenario_dc1_sobrecarga():
             objetivo_tipo="Sistema",
             descripcion="Sobrecarga forzada del sistema DC_1",
             severidad=4,
-            demanda_kw=40000.0,
-            capacidad_disponible_kw=30000.0,
+            carga_kw=carga_kw,
+            capacidad_disponible_kw=capacidad_disponible_kw,
+            porcentaje_sobrecarga=porcentaje_sobrecarga,
         ),
     ]
     return estado, eventos
