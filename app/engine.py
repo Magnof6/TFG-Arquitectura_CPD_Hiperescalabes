@@ -114,6 +114,11 @@ class MotorSimulacion:
         Procesa en bloque todos los eventos del mismo instante temporal
         para evitar estados transitorios incoherentes en snapshots.
         """
+        for comp in self.estado.componentes.values():
+            if getattr(comp, "tipo","").lower()== "ups":
+                if hasattr(comp, "transferencia_bloqueada"):
+                    comp.transferencia_bloqueada = False
+
         self.recalcular_estado_completo()
         self.registrar_snapshot(motivo="inicio")
 

@@ -109,6 +109,7 @@ class UPS(ObjetoElectrico):
     alimentando_zona: bool = False
     bateria_agotada: bool = False
     tiempo_inicio_bateria_s: Optional[float] = None
+    transferencia_bloqueada: bool = False
 
 @dataclass
 class BateriaUPS(ObjetoElectrico):

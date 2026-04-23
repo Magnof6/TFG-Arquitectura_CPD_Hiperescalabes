@@ -203,7 +203,13 @@ class ProcesadorEventos:
     def _procesar_conmutacion_fuente(self, evento: models.ConmutacionFuente, estado) -> List[models.Evento]:
         derivados: List[models.Evento] = []
 
+        destino = estado.componentes.get(evento.fuente_destino)
+
         if not evento.exito:
+
+            if destino is not None and destino.tipo.lower() =="ups":
+                destino.transferencia_bloqueada = True
+
             derivados.extend(
                 self.motor_reglas.generar_eventos_fallo_conmutacion(
                     evento= evento,
@@ -211,8 +217,11 @@ class ProcesadorEventos:
                 )
             )
             return derivados
-        destino = estado.componentes.get(evento.fuente_destino)
+        
         if destino is not None and destino.tipo.lower() =="ups":
+            if getattr(destino, "transferencia_bloqueada", False):
+                return derivados
+            
             destino.alimentando_zona = True
             destino.en_bateria = True
             destino.tiempo_inicio_bateria_s = evento.tiempo_s
@@ -228,7 +237,7 @@ class ProcesadorEventos:
     def _procesar_perdida_suministro(self, evento: models.PerdidaSuministro, estado) -> List[models.Evento]:
         if evento.objetivo_tipo.lower() == "ups":
             for zona in estado.zonas_it.values():
-                if zona.alimentacion_preferida == evento.objetivo_id:
+                if (zona.alimentacion_preferida == evento.objetivo_id or zona.alimentacion_respaldo == evento.objetivo_id):
                     zona.estado = "sin_alimentacion"
         return []
     
