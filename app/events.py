@@ -226,6 +226,13 @@ class ProcesadorEventos:
             destino.en_bateria = True
             destino.tiempo_inicio_bateria_s = evento.tiempo_s
         
+        elif destino is not None and destino.tipo.lower() == "generador":
+            zona = estado.zonas_it.get(evento.objetivo_id)
+            if zona is not None:
+                zona.alimentacion_actual = destino.id
+                zona.estado = "alimentado"
+                zona.deslastrada = False
+        
         return derivados
 
     def _procesar_sobrecarga(self, evento: models.Sobrecarga, estado) -> List[models.Evento]:
@@ -239,6 +246,10 @@ class ProcesadorEventos:
             for zona in estado.zonas_it.values():
                 if (zona.alimentacion_preferida == evento.objetivo_id or zona.alimentacion_respaldo == evento.objetivo_id):
                     zona.estado = "sin_alimentacion"
+        elif evento.objetivo_id in estado.zonas_it:
+            zona = estado.zonas_it[evento.objetivo_id]
+            zona.estado = "sin_alimentacion"
+            zona.deslastrada = True
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:

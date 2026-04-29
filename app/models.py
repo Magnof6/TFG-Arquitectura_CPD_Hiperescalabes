@@ -193,6 +193,8 @@ class ZonaIT:
     alimentacion_preferida: str
     alimentacion_respaldo: str
     sala_it_id: str
+    alimentacion_actual: Optional[str] = None
+    deslastrada: bool = False #En casos de sobrecarga, cortamos la corriente para que no se dañen los equipos conectados.
 
 ############ CONEXIONES ############
 
