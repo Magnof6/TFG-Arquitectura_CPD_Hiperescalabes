@@ -610,7 +610,7 @@ def escenario_dc1_fallo_emf_y_parada_generador():
     ]
     return estado, eventos
 
-def escenario_dc1_sobrecarga():
+def escenario_dc1_sobrecarga_simple():
     estado = _crear_escenario_tillion_dc1()
 
     carga_kw = 40000.0
@@ -619,14 +619,170 @@ def escenario_dc1_sobrecarga():
 
     eventos = [
         Sobrecarga(
-            id="sobrecarga_dc1",
+            id="sobrecarga_dc1_simple",
             tipo="Sobrecarga",
             tiempo_s=10,
             duracion_s=0,
             objetivo_id="dc1",
             objetivo_tipo="Sistema",
-            descripcion="Sobrecarga forzada del sistema DC_1",
+            descripcion="Sobrecarga simple del sistema DC_1",
             severidad=4,
+            carga_kw=carga_kw,
+            capacidad_disponible_kw=capacidad_disponible_kw,
+            porcentaje_sobrecarga=porcentaje_sobrecarga,
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_sobrecarga_sin_respaldo_local():
+    estado = _crear_escenario_tillion_dc1()
+
+    carga_kw = 40000.0
+    capacidad_disponible_kw = 30000.0
+    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
+
+    eventos = [
+        FalloComponente(
+            id="fallo_ups_m3_5_b",
+            tipo="FalloComponente",
+            tiempo_s=5,
+            duracion_s=0,
+            objetivo_id="ups_m3_5_b",
+            objetivo_tipo="UPS",
+            descripcion="Fallo de UPS B del bloque m3_5",
+            severidad=4,
+            causa="Fallo previo en respaldo local",
+            nuevo_estado="fallado",
+        ),
+        FalloComponente(
+            id="fallo_ups_m3_6_b",
+            tipo="FalloComponente",
+            tiempo_s=5,
+            duracion_s=0,
+            objetivo_id="ups_m3_6_b",
+            objetivo_tipo="UPS",
+            descripcion="Fallo de UPS B del bloque m3_6",
+            severidad=4,
+            causa="Fallo previo en respaldo local",
+            nuevo_estado="fallado",
+        ),
+        Sobrecarga(
+            id="sobrecarga_dc1_sin_respaldo_local",
+            tipo="Sobrecarga",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="dc1",
+            objetivo_tipo="Sistema",
+            descripcion="Sobrecarga del sistema DC_1 sin respaldo local en algunos bloques",
+            severidad=4,
+            carga_kw=carga_kw,
+            capacidad_disponible_kw=30000.0,
+            porcentaje_sobrecarga=porcentaje_sobrecarga,
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_emf_y_sobrecarga():
+    estado = _crear_escenario_tillion_dc1()
+
+    carga_kw = 40000.0
+    capacidad_disponible_kw = 28000.0
+    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
+
+    eventos = [
+        FalloComponente(
+            id="fallo_emf_sobrecarga",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF previo a sobrecarga",
+            severidad=5,
+            causa="Fallo en infraestructura AT",
+            nuevo_estado="fallado",
+        ),
+        Sobrecarga(
+            id="sobrecarga_dc1_post_emf",
+            tipo="Sobrecarga",
+            tiempo_s=30,
+            duracion_s=0,
+            objetivo_id="dc1",
+            objetivo_tipo="Sistema",
+            descripcion="Sobrecarga del sistema DC_1 tras fallo del EMF",
+            severidad=5,
+            carga_kw=carga_kw,
+            capacidad_disponible_kw=capacidad_disponible_kw,
+            porcentaje_sobrecarga=porcentaje_sobrecarga,
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_emf_parada_generadores_y_sobrecarga():
+    estado = _crear_escenario_tillion_dc1()
+
+    carga_kw = 40000.0
+    capacidad_disponible_kw = 22000.0
+    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
+
+    eventos = [
+        FalloComponente(
+            id="fallo_emf_generadores_sobrecarga",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF previo a sobrecarga severa",
+            severidad=5,
+            causa="Fallo en infraestructura AT",
+            nuevo_estado="fallado",
+        ),
+        ParadaGenerador(
+            id="parada_gen_dc1_1_sobrecarga",
+            tipo="ParadaGenerador",
+            tiempo_s=40,
+            duracion_s=0,
+            objetivo_id="gen_dc1_1",
+            objetivo_tipo="Generador",
+            descripcion="Parada del generador gen_dc1_1",
+            severidad=4,
+            generador_id="gen_dc1_1",
+            motivo="Fallo durante operación en respaldo",
+        ),
+        ParadaGenerador(
+            id="parada_gen_dc1_2_sobrecarga",
+            tipo="ParadaGenerador",
+            tiempo_s=40,
+            duracion_s=0,
+            objetivo_id="gen_dc1_2",
+            objetivo_tipo="Generador",
+            descripcion="Parada del generador gen_dc1_2",
+            severidad=4,
+            generador_id="gen_dc1_2",
+            motivo="Fallo durante operación en respaldo",
+        ),
+        ParadaGenerador(
+            id="parada_gen_dc1_3_sobrecarga",
+            tipo="ParadaGenerador",
+            tiempo_s=40,
+            duracion_s=0,
+            objetivo_id="gen_dc1_3",
+            objetivo_tipo="Generador",
+            descripcion="Parada del generador gen_dc1_3",
+            severidad=4,
+            generador_id="gen_dc1_3",
+            motivo="Fallo durante operación en respaldo",
+        ),
+        Sobrecarga(
+            id="sobrecarga_dc1_severa",
+            tipo="Sobrecarga",
+            tiempo_s=50,
+            duracion_s=0,
+            objetivo_id="dc1",
+            objetivo_tipo="Sistema",
+            descripcion="Sobrecarga severa del sistema DC_1 con menos generadores disponibles",
+            severidad=5,
             carga_kw=carga_kw,
             capacidad_disponible_kw=capacidad_disponible_kw,
             porcentaje_sobrecarga=porcentaje_sobrecarga,
@@ -815,7 +971,7 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_fallo_trafo_bloque": escenario_dc1_fallo_trafo_bloque,
     "escenario_dc1_fallo_y_recuperacion_emf": escenario_dc1_fallo_y_recuperacion_emf,
     "escenario_dc1_fallo_emf_y_parada_generador": escenario_dc1_fallo_emf_y_parada_generador,
-    "escenario_dc1_sobrecarga": escenario_dc1_sobrecarga,
+    "escenario_dc1_sobrecarga": escenario_dc1_sobrecarga_simple,
     "escenario_dc1_fallo_conmutacion_ups": escenario_dc1_fallo_conmutacion_ups,
     "escenario_dc1_salida_reserva_trafo": escenario_dc1_salida_reserva_trafo,
     "escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque": escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque,
@@ -823,4 +979,11 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_fallo_sts_bloque": escenario_dc1_fallo_sts_bloque,
     "escenario_dc1_fallo_rmu_modulo": escenario_dc1_fallo_rmu_modulo,
     "escenario_dc1_fallo_rmu_bloque": escenario_dc1_fallo_rmu_bloque,
+}
+
+ESCENARIOS_SOBRECARGA = {
+    "escenario_dc1_sobrecarga_simple": escenario_dc1_sobrecarga_simple,
+    "escenario_dc1_sobrecarga_sin_respaldo_local": escenario_dc1_sobrecarga_sin_respaldo_local,
+    "escenario_dc1_fallo_emf_y_sobrecarga": escenario_dc1_fallo_emf_y_sobrecarga,
+    "escenario_dc1_fallo_emf_parada_generadores_y_sobrecarga": escenario_dc1_fallo_emf_parada_generadores_y_sobrecarga,
 }
