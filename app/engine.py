@@ -103,6 +103,11 @@ class MotorSimulacion:
             "RestablecimientoSuministro": 9,
         }
         return prioridades.get(evento.tipo, 50)
+    def _limpiar_transferencias_bloqueadas(self) -> None:
+        for comp in self.estado.componentes.values():
+            if getattr(comp, "tipo","").lower()== "ups":
+                if hasattr(comp, "transferencia_bloqueada"):
+                    comp.transferencia_bloqueada = False
 
     # -----------------------------------------------------------------
     # 2. EJECUCIÓN PRINCIPAL
@@ -114,10 +119,7 @@ class MotorSimulacion:
         Procesa en bloque todos los eventos del mismo instante temporal
         para evitar estados transitorios incoherentes en snapshots.
         """
-        for comp in self.estado.componentes.values():
-            if getattr(comp, "tipo","").lower()== "ups":
-                if hasattr(comp, "transferencia_bloqueada"):
-                    comp.transferencia_bloqueada = False
+        self._limpiar_transferencias_bloqueadas()
 
         self.recalcular_estado_completo()
         self.registrar_snapshot(motivo="inicio")
@@ -188,6 +190,7 @@ class MotorSimulacion:
                 )
 
             self.registrar_snapshot(motivo=f"lote_{int(tiempo_lote)}s")
+            self._limpiar_transferencias_bloqueadas()
         return self.obtener_resultados()
     # -----------------------------------------------------------------
     # 3. RECÁLCULO DEL SISTEMA
