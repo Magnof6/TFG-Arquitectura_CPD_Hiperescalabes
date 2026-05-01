@@ -408,6 +408,12 @@ class MotorReglas:
         eventos = []
         cargas = list(getattr(estado, "zonas_it", {}).values())
 
+        capacidad_evento = evento.capacidad_disponible_kw
+
+        if evento.objetivo_tipo.lower() == "sistema":
+            if capacidad_evento >= evento.carga_kw:
+                return []
+        
         servidas = self.aplicar_prioridad_cargas(cargas, evento.capacidad_disponible_kw)
         servidas_ids = {c.id for c in servidas}
 
@@ -848,33 +854,33 @@ class MotorReglas:
 
         fuente_pref = estado.componentes.get(fuente_pref_id)
         fuente_resp = estado.componentes.get(fuente_resp_id)
-        if not es_sobrecarga_global:
-            # Intentar UPS / fuente de respaldo declarada en la zona
-            if (
-                fuente_resp is not None
-                and getattr(fuente_resp, "estado", None) == "activo"
-                and fuente_resp_id != fuente_pref_id
-            ):
-                rutas = self.topologia.buscar_rutas(fuente_resp_id, zona.id)
-                for ruta in rutas:
-                    if self.ruta_es_operativa(ruta, estado) and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw:
-                        eventos.append(
-                            models.ConmutacionFuente(
-                                id=f"sobrecarga_conm_{zona.id}_{fuente_resp_id}_{int(tiempo_s)}",
-                                tipo="ConmutacionFuente",
-                                tiempo_s=tiempo_s,
-                                duracion_s=0.0,
-                                objetivo_id=fuente_resp_id,
-                                objetivo_tipo=getattr(fuente_resp, "tipo", "fuente"),
-                                descripcion=f"Conmutación a fuente alternativa {fuente_resp_id} por sobrecarga en {zona.id}",
-                                severidad=3,
-                                fuente_origen=fuente_pref_id,
-                                fuente_destino=fuente_resp_id,
-                                tiempo_transferencia_ms=getattr(fuente_resp, "tiempo_conmutacion_ms", 0.0),
-                                exito=True,
-                            )
+        
+        # Intentar UPS / fuente de respaldo declarada en la zona
+        if (
+            fuente_resp is not None
+            and getattr(fuente_resp, "estado", None) == "activo"
+            and fuente_resp_id != fuente_pref_id
+        ):
+            rutas = self.topologia.buscar_rutas(fuente_resp_id, zona.id)
+            for ruta in rutas:
+                if self.ruta_es_operativa(ruta, estado) and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw:
+                    eventos.append(
+                        models.ConmutacionFuente(
+                            id=f"sobrecarga_conm_{zona.id}_{fuente_resp_id}_{int(tiempo_s)}",
+                            tipo="ConmutacionFuente",
+                            tiempo_s=tiempo_s,
+                            duracion_s=0.0,
+                            objetivo_id=zona.id,
+                            objetivo_tipo="zona_it",
+                            descripcion=f"Conmutación a fuente alternativa {fuente_resp_id} por sobrecarga en {zona.id}",
+                            severidad=3,
+                            fuente_origen=getattr(zona, "alimentacion_actual", fuente_pref_id),
+                            fuente_destino=fuente_resp_id,
+                            tiempo_transferencia_ms=getattr(fuente_resp, "tiempo_conmutacion_ms", 0.0),
+                            exito=True,
                         )
-                        return eventos
+                    )
+                    return eventos
 
         # Intentar cualquier generador activo con ruta válida
         for comp in estado.componentes.values():
@@ -891,10 +897,10 @@ class MotorReglas:
                             tiempo_s=tiempo_s,
                             duracion_s=0.0,
                             objetivo_id=zona.id,
-                            objetivo_tipo="generador",
+                            objetivo_tipo="zona_it",
                             descripcion=f"Reconfiguración a generador {comp.id} por sobrecarga en {zona.id}",
                             severidad=3,
-                            fuente_origen=fuente_pref_id,
+                            fuente_origen=getattr(zona, "alimentacion_actual", fuente_pref_id),
                             fuente_destino=comp.id,
                             tiempo_transferencia_ms=50.0,
                             exito=True,
