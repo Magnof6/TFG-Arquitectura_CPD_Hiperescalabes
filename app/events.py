@@ -325,9 +325,11 @@ class ProcesadorEventos:
 
         ups = estado.componentes.get(evento.ups_id)
         if ups is None:
+            evento._ignorar_registro = True
             return derivados
         #Si ya no está en batería, ignorar evento programado(puede ser que haya vuelto la red o haya entrado los generadores)
         if not getattr(ups, "en_bateria", False):
+            evento._ignorar_registro = True
             return derivados
 
         ups.en_bateria = False

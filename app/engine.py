@@ -144,7 +144,8 @@ class MotorSimulacion:
             while i < len(eventos_lote):
                 evento = eventos_lote[i]
                 eventos_derivados = self.procesador_eventos.aplicar(evento, self.estado)
-                registros_pendientes.append(evento)
+                if not getattr(evento, "_ignorar_registro", False):
+                    registros_pendientes.append(evento)
 
                 for evento_derivado in eventos_derivados:
                     if evento_derivado.tiempo_s == tiempo_lote:
@@ -165,7 +166,8 @@ class MotorSimulacion:
             while i < len(eventos_lote):
                 evento = eventos_lote[i]
                 eventos_derivados = self.procesador_eventos.aplicar(evento, self.estado)
-                registros_pendientes.append(evento)
+                if not getattr(evento, "_ignorar_registro", False):
+                    registros_pendientes.append(evento)
 
                 for evento_derivado in eventos_derivados:
                     if evento_derivado.tiempo_s == tiempo_lote:
