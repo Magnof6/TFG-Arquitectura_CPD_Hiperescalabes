@@ -352,6 +352,8 @@ class ProcesadorEventos:
 
     def _procesar_arranque_generador(self, evento: models.ArranqueGenerador, estado) -> List[models.Evento]:
         derivados: List[models.Evento] = []
+        demanda = self.motor_reglas.demanda_total_kw(estado)
+        capacidad = self.motor_reglas.capacidad_total_activa_kw(estado)
 
         generador = estado.componentes.get(evento.generador_id)
         if generador is None:
@@ -376,8 +378,8 @@ class ProcesadorEventos:
                     ):
                         puede_suministrar = True
                         break
-            #solo si realmente puede alimentar, as UPS salen de bateria
-            if puede_suministrar:
+            #solo si realmente puede alimentar, y la capacidad es mayor a la demanda entonces las UPS salen de bateria
+            if puede_suministrar and capacidad >= demanda:
                 for comp in estado.componentes.values():
                     if comp.tipo.lower() =="ups":
                         comp.en_bateria = False
