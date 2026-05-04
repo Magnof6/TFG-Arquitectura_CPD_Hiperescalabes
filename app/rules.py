@@ -181,6 +181,38 @@ class MotorReglas:
         )
         return rutas_validas
     
+    def buscar_fuente_valida_para_zona(self, zona, estado):
+        fuente_actual_id = getattr(zona, "alimentacion_actual", None)
+        fuente_pref_id = getattr(zona, "alimentacion_preferida", None)
+        fuente_resp_id = getattr(zona, "alimentacion_respaldo", None)
+        
+        candidatos = [fuente_actual_id,fuente_pref_id, fuente_resp_id]
+        candidatos = list(dict.fromkeys(c for c in candidatos if c is not None))  # Eliminar duplicados y Nones, manteniendo el orden
+
+        for fuente_id in candidatos:
+            fuente = estado.componentes.get(fuente_id)
+            if fuente is None:
+                continue
+
+            if getattr(fuente, "estado", None) != "activo":
+                continue
+
+            if getattr(fuente, "transferencia_bloqueada", False):
+                continue
+
+            if getattr(fuente, "bateria_agotada", False):
+                continue
+
+            rutas = self.topologia.buscar_rutas(fuente_id, zona.id)
+
+            for ruta in rutas:
+                if (
+                    self.ruta_es_operativa(ruta, estado)
+                    and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw
+                ):
+                    return fuente_id
+
+        return None
     #---------------------------------------------------------
     # Alimentación de Cargas y Salas
     #---------------------------------------------------------
@@ -850,37 +882,30 @@ class MotorReglas:
         es_sobrecarga_global = evento.objetivo_tipo.lower() == "sistema"
         
         fuente_pref_id = zona.alimentacion_preferida
-        fuente_resp_id = zona.alimentacion_respaldo
+        fuente_actual_id = getattr(zona, "alimentacion_actual", fuente_pref_id)
 
-        fuente_pref = estado.componentes.get(fuente_pref_id)
-        fuente_resp = estado.componentes.get(fuente_resp_id)
-        
-        # Intentar UPS / fuente de respaldo declarada en la zona
-        if (
-            fuente_resp is not None
-            and getattr(fuente_resp, "estado", None) == "activo"
-            and fuente_resp_id != fuente_pref_id
-        ):
-            rutas = self.topologia.buscar_rutas(fuente_resp_id, zona.id)
-            for ruta in rutas:
-                if self.ruta_es_operativa(ruta, estado) and self.capacidad_ruta_kw(ruta, estado) >= zona.demanda_kw:
-                    eventos.append(
-                        models.ConmutacionFuente(
-                            id=f"sobrecarga_conm_{zona.id}_{fuente_resp_id}_{int(tiempo_s)}",
-                            tipo="ConmutacionFuente",
-                            tiempo_s=tiempo_s,
-                            duracion_s=0.0,
-                            objetivo_id=zona.id,
-                            objetivo_tipo="zona_it",
-                            descripcion=f"Conmutación a fuente alternativa {fuente_resp_id} por sobrecarga en {zona.id}",
-                            severidad=3,
-                            fuente_origen=getattr(zona, "alimentacion_actual", fuente_pref_id),
-                            fuente_destino=fuente_resp_id,
-                            tiempo_transferencia_ms=getattr(fuente_resp, "tiempo_conmutacion_ms", 0.0),
-                            exito=True,
-                        )
-                    )
-                    return eventos
+        fuente_destino_id = self.buscar_fuente_valida_para_zona(zona, estado)
+
+        if fuente_destino_id is not None:
+            fuente_destino = estado.componentes.get(fuente_destino_id)
+
+            eventos.append(
+                models.ConmutacionFuente(
+                    id=f"sobrecarga_conm_{zona.id}_{fuente_destino_id}_{int(tiempo_s)}",
+                    tipo="ConmutacionFuente",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=zona.id,
+                    objetivo_tipo="zona_it",
+                    descripcion=f"Conmutación a fuente alternativa {fuente_destino_id} por sobrecarga en {zona.id}",
+                    severidad=3,
+                    fuente_origen=fuente_actual_id,
+                    fuente_destino=fuente_destino_id,
+                    tiempo_transferencia_ms=getattr(fuente_destino, "tiempo_conmutacion_ms", 0.0),
+                    exito=True,
+                )
+            )
+            return eventos
 
         # Intentar cualquier generador activo con ruta válida
         for comp in estado.componentes.values():
