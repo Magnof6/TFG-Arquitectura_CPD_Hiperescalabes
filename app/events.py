@@ -352,8 +352,7 @@ class ProcesadorEventos:
 
     def _procesar_arranque_generador(self, evento: models.ArranqueGenerador, estado) -> List[models.Evento]:
         derivados: List[models.Evento] = []
-        demanda = self.motor_reglas.demanda_total_kw(estado)
-        capacidad = self.motor_reglas.capacidad_total_activa_kw(estado)
+        
 
         generador = estado.componentes.get(evento.generador_id)
         if generador is None:
@@ -366,6 +365,8 @@ class ProcesadorEventos:
             generador.estado = "activo"
             if hasattr(generador, "arrancado"):
                 generador.arrancado = True
+            demanda = self.motor_reglas.demanda_total_kw(estado)
+            capacidad = self.motor_reglas.capacidad_total_activa_kw(estado)
             
             #comprobar si este generador realmente puede suministrar
             puede_suministrar = False
