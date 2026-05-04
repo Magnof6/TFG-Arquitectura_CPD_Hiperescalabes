@@ -438,42 +438,66 @@ class MotorReglas:
 
     def generar_eventos_por_sobrecarga(self, evento: models.Sobrecarga, estado):
         eventos = []
-        cargas = list(getattr(estado, "zonas_it", {}).values())
+        cargas = [
+            z for z in getattr(estado, "zonas_it", {}).values()
+            if getattr(z, "demanda_kw", 0.0) > 0
+        ]
 
         capacidad_evento = evento.capacidad_disponible_kw
 
-        if evento.objetivo_tipo.lower() == "sistema":
-            if capacidad_evento >= evento.carga_kw:
-                return []
-        
-        servidas = self.aplicar_prioridad_cargas(cargas, evento.capacidad_disponible_kw)
+        if capacidad_evento >= evento.carga_kw:
+            return []
+
+        servidas = self.aplicar_prioridad_cargas(cargas, capacidad_evento)
         servidas_ids = {c.id for c in servidas}
 
+        generadores_programados = False #evita duplicidad de eventos si hay varias cargas afectadas por la misma sobrecarga y no hay UPS disponibles
         for carga in cargas:
             if carga.id in servidas_ids:
                 continue
+
+            # 1. Intentar UPS A/B como apoyo
+            evento_ups = self.generar_evento_apoyo_ups_por_sobrecarga(
+                zona=carga,
+                evento=evento,
+                estado=estado,
+            )
+
+            if evento_ups is not None:
+                eventos.append(evento_ups)
+
+                if not generadores_programados:
+                    eventos.extend(
+                        self.generar_eventos_arranque_generadores_por_sobrecarga(
+                            tiempo_s=evento.tiempo_s,
+                            estado=estado,
+                            capacidad_objetivo_kw=evento.carga_kw,
+                            capacidad_inicial_kw=evento.capacidad_disponible_kw,
+                        )
+                    )
+                    generadores_programados = True
+
+                continue
+            # 2. Si no hay UPS disponible, usar la redistribución antigua
             eventos_alt = self.generar_eventos_redistribucion_por_sobrecarga(
                 zona=carga,
-                evento = evento,
-                estado= estado
+                evento=evento,
+                estado=estado,
             )
+
             if eventos_alt:
                 eventos.extend(eventos_alt)
-            else:
-                eventos.append(
-                    models.PerdidaSuministro(
-                        id=f"loss_{carga.id}_{int(evento.tiempo_s)}",
-                        tipo="PerdidaSuministro",
-                        tiempo_s=evento.tiempo_s,
-                        duracion_s=evento.duracion_s,
-                        objetivo_id=carga.id,
-                        objetivo_tipo=getattr(carga, "tipo", "carga"),
-                        descripcion=f"Pérdida de suministro por sobrecarga en {carga.id}",
-                        severidad=evento.severidad,
-                        nivel="carga",
-                        carga_afectada_kw=carga.demanda_kw,
-                    )
+                continue
+
+            # 3. Si no hay alternativa, deslastre
+            eventos.append(
+                self.crear_evento_deslastre_por_sobrecarga(
+                    zona=carga,
+                    evento=evento,
+                    motivo="sin fuente alternativa disponible",
                 )
+            )
+
         return eventos
 
 
@@ -886,7 +910,7 @@ class MotorReglas:
 
         fuente_destino_id = self.buscar_fuente_valida_para_zona(zona, estado)
 
-        if fuente_destino_id is not None:
+        if fuente_destino_id is not None and fuente_destino_id != fuente_pref_id:
             fuente_destino = estado.componentes.get(fuente_destino_id)
 
             eventos.append(
@@ -1046,3 +1070,85 @@ class MotorReglas:
         if hasattr(estado, "salas_it") and nodo_id in estado.salas_it:
             return estado.salas_it[nodo_id]
         return None
+    
+    def generar_evento_apoyo_ups_por_sobrecarga(self, zona, evento, estado):
+        for ups_id in [zona.alimentacion_preferida, zona.alimentacion_respaldo]:
+            ups = estado.componentes.get(ups_id)
+
+            if ups is None:
+                continue
+
+            if ups.estado != "activo":
+                continue
+
+            if getattr(ups, "bateria_agotada", False):
+                continue
+
+            if getattr(ups, "transferencia_bloqueada", False):
+                continue
+
+            return models.ConmutacionFuente(
+                id=f"sobrecarga_apoyo_ups_{zona.id}_{ups.id}_{int(evento.tiempo_s)}",
+                tipo="ConmutacionFuente",
+                tiempo_s=evento.tiempo_s,
+                duracion_s=0.0,
+                objetivo_id=zona.id,
+                objetivo_tipo="zona_it",
+                descripcion=f"Apoyo mediante UPS {ups.id} por sobrecarga en {zona.id}",
+                severidad=3,
+                fuente_origen=getattr(zona, "alimentacion_actual", zona.alimentacion_preferida),
+                fuente_destino=ups.id,
+                tiempo_transferencia_ms=getattr(ups, "tiempo_conmutacion_ms", 0.0),
+                exito=True,
+            )
+
+        return None
+    
+    def crear_evento_deslastre_por_sobrecarga(self, zona, evento, motivo: str):
+        return models.PerdidaSuministro(
+            id=f"deslastre_sobrecarga_{zona.id}_{int(evento.tiempo_s)}",
+            tipo="PerdidaSuministro",
+            tiempo_s=evento.tiempo_s,
+            duracion_s=evento.duracion_s,
+            objetivo_id=zona.id,
+            objetivo_tipo=getattr(zona, "tipo", "zona_it"),
+            descripcion=f"Deslastre de {zona.id} por sobrecarga: {motivo}",
+            severidad=evento.severidad,
+            nivel="carga",
+            carga_afectada_kw=zona.demanda_kw,
+        )
+
+    def generar_eventos_arranque_generadores_por_sobrecarga(self,tiempo_s: float,estado,capacidad_objetivo_kw: float,capacidad_inicial_kw: float,):
+        eventos = []
+
+        capacidad_actual = capacidad_inicial_kw
+
+        for componente in estado.componentes.values():
+            if componente.tipo.lower() != "generador":
+                continue
+
+            if componente.estado != "reserva":
+                continue
+
+            if capacidad_actual >= capacidad_objetivo_kw:
+                break
+
+            capacidad_actual += getattr(componente, "potencia_nominal_kwe", 0.0)
+
+            eventos.append(
+                models.ArranqueGenerador(
+                    id=f"arranque_sobrecarga_{componente.id}_{int(tiempo_s)}",
+                    tipo="ArranqueGenerador",
+                    tiempo_s=tiempo_s + getattr(componente, "tiempo_arranque_s", 0.0),
+                    duracion_s=0.0,
+                    objetivo_id=componente.id,
+                    objetivo_tipo="generador",
+                    descripcion=f"Arranque de {componente.id} por apoyo a sobrecarga",
+                    severidad=3,
+                    generador_id=componente.id,
+                    tiempo_arranque_s=getattr(componente, "tiempo_arranque_s", 0.0),
+                    arranque_exitoso=True,
+                )
+            )
+
+        return eventos
