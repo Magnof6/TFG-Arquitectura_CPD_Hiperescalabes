@@ -239,6 +239,10 @@ class ProcesadorEventos:
             for zona in estado.zonas_it.values():
                 if (zona.alimentacion_preferida == evento.objetivo_id or zona.alimentacion_respaldo == evento.objetivo_id):
                     zona.estado = "sin_alimentacion"
+        elif evento.objetivo_id in estado.zonas_it:
+            zona = estado.zonas_it[evento.objetivo_id]
+            zona.estado = "sin_alimentacion"
+            
         return []
     
     def _procesar_restablecimiento_suministro(self, evento: models.RestablecimientoSuministro, estado) -> List[models.Evento]:
