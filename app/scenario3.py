@@ -709,7 +709,7 @@ def escenario_dc1_fallo_emf_y_sobrecarga():
             duracion_s=0,
             objetivo_id="dc1",
             objetivo_tipo="Sistema",
-            descripcion="Sobrecarga del sistema DC_1 tras fallo del EMF",
+            descripcion="Déficit de capacidad de generación de emergencia tras fallo del EMF (sobrecarga del sistema DC_1)",
             severidad=5,
             carga_kw=carga_kw,
             capacidad_disponible_kw=capacidad_disponible_kw,
