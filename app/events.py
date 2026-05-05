@@ -125,6 +125,13 @@ class ProcesadorEventos:
                     estado = estado,
                 )
             )
+            derivados.extend(
+                self.motor_reglas.generar_eventos_ups_por_perdida_ruta(
+                    tiempo_s=evento.tiempo_s,
+                    estado=estado,
+                    motivo=f"Pérdida de ruta por fallo de {componente.id}",
+                )
+            )
         #Si falla un generador, reevaluar cobertura
         if componente.tipo.lower() =="generador":
             derivados.extend(
@@ -135,11 +142,19 @@ class ProcesadorEventos:
                 )
             )
             
-        if componente.tipo.lower() in {"emf", "subestacion","busbar"}:
+        if componente.tipo.lower() in {"emf", "subestacion",}:
             derivados.extend(
                 self.motor_reglas.generar_eventos_caida_red(
                     tiempo_s=evento.tiempo_s,
                     estado=estado
+                )
+            )
+        if componente.tipo.lower() == "busbar":
+            derivados.extend(
+                self.motor_reglas.generar_eventos_ups_por_perdida_ruta(
+                    tiempo_s = evento.tiempo_s,
+                    estado = estado,
+                    motivo = f"Pérdida de tura por fallo de {componente.id}"
                 )
             )
         if componente.tipo.lower() =="transformador":

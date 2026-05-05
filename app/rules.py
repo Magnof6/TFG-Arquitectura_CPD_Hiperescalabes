@@ -687,6 +687,68 @@ class MotorReglas:
             )
 
         return eventos
+    
+    def generar_eventos_ups_por_perdida_ruta(self, tiempo_s: float, estado, motivo: str):
+        eventos = []
+        ups_programadas = set()
+
+        for zona in estado.zonas_it.values():
+            if getattr(zona, "demanda_kw", 0.0) <= 0:
+                continue
+
+            rutas_validas = self.buscar_rutas_validas_a_destino(
+                destino_id=zona.id,
+                demanda_kw=zona.demanda_kw,
+                estado=estado,
+            )
+
+            if rutas_validas:
+                continue
+
+            ups_id = zona.alimentacion_preferida
+            ups = estado.componentes.get(ups_id)
+
+            if ups is None or ups.estado != "activo":
+                continue
+
+            if ups.id in ups_programadas:
+                continue
+
+            eventos.append(
+                models.ConmutacionFuente(
+                    id=f"conm_ups_perdida_ruta_{ups.id}_{int(tiempo_s)}",
+                    tipo="ConmutacionFuente",
+                    tiempo_s=tiempo_s,
+                    duracion_s=0.0,
+                    objetivo_id=ups.id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Conmutación a UPS {ups.id} por {motivo}",
+                    severidad=3,
+                    fuente_origen="ruta_principal",
+                    fuente_destino=ups.id,
+                    tiempo_transferencia_ms=getattr(ups, "tiempo_conmutacion_ms", 0.0),
+                    exito=True,
+                )
+            )
+
+            eventos.append(
+                models.AgotamientoBateria(
+                    id=f"agotamiento_{ups.id}_{int(tiempo_s)}",
+                    tipo="AgotamientoBateria",
+                    tiempo_s=tiempo_s + getattr(ups, "autonomia_min_eol", 0.0) * 60.0,
+                    duracion_s=0.0,
+                    objetivo_id=ups.id,
+                    objetivo_tipo="ups",
+                    descripcion=f"Agotamiento previsto de batería en {ups.id}",
+                    severidad=4,
+                    ups_id=ups.id,
+                    autonomia_restante_min=0.0,
+                )
+            )
+
+            ups_programadas.add(ups.id)
+
+        return eventos
 
     def generar_eventos_fallo_generador(self, generador_id: str, tiempo_s: float, estado):
         eventos = []
