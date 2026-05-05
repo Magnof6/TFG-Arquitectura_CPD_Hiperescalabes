@@ -116,7 +116,15 @@ class ProcesadorEventos:
                     estado_anterior=estado_anterior,
                 )
             )
-        
+        #Si falla un rmu, puede producirse conmutación o pérdida de suministro
+        if componente.tipo.lower()=="rmu":
+            derivados.extend(
+                self.motor_reglas.generar_eventos_fallo_rmu(
+                    rmu_id = componente.id,
+                    tiempo_s = evento.tiempo_s,
+                    estado = estado,
+                )
+            )
         #Si falla un generador, reevaluar cobertura
         if componente.tipo.lower() =="generador":
             derivados.extend(
@@ -151,6 +159,7 @@ class ProcesadorEventos:
                     trafo_id = componente.id,
                     estado = estado
                 )
+        
         return derivados
     
     def _procesar_recuperacion_componente(self, evento: models.RecuperacionComponente, estado) -> List[models.Evento]:

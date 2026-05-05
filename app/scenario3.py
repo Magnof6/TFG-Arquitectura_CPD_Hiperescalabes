@@ -243,6 +243,7 @@ def _crear_escenario_tillion_dc1():
 
         # 7 bloques por módulo: 6 activos + 1 reserva
         trafos_modulo = []
+        rmus_modulo = []
 
         for b in range(1, 8):
             es_reserva = (b == 7)
@@ -393,6 +394,7 @@ def _crear_escenario_tillion_dc1():
             zonas_it[zona.id] = zona
 
             trafos_modulo.append(trafo.id)
+            rmus_modulo.append(rmu.id)
 
             conexiones.extend([
                 ConexionElectrica(rmu_modulo.id, rmu.id),
@@ -412,6 +414,15 @@ def _crear_escenario_tillion_dc1():
             tipo_componente="transformador",
             componentes_ids=trafos_modulo,
             capacidad_necesaria_kw=24000,
+            n_requerido=6,
+        )
+
+        grupos[f"grupo_rmus_modulo_{m}"] = GrupoRedundancia(
+            id=f"grupo_rmus_modulo_{m}",
+            nombre=f"RMUs IT módulo {m}",
+            tipo_componente="rmu",
+            componentes_ids=rmus_modulo,
+            capacidad_necesaria_kw=0,
             n_requerido=6,
         )
 

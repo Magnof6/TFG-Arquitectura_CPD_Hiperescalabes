@@ -325,6 +325,23 @@ class MotorReglas:
 
     def grupo_esta_degradado(self, grupo, estado) -> bool:
         componentes = self.obtener_componentes_grupo(grupo, estado)
+
+        if grupo.tipo_componente.lower() == "rmu":
+            activos_no_reserva = [
+                c for c in componentes
+                if not getattr(c, "es_reserva", False) and c.estado == "activo"
+            ]
+
+            reservas_activadas = [
+                c for c in componentes
+                if getattr(c, "es_reserva", False) and c.estado == "activo"
+            ]
+
+            return (
+                len(activos_no_reserva) < grupo.n_requerido
+                or bool(reservas_activadas)
+            )
+
         activos = [c for c in componentes if c.estado == "activo"]
         reservas_activadas = [
             c for c in componentes
@@ -899,6 +916,81 @@ class MotorReglas:
         # 3) eliminar las conexiones antiguas del trafo fallado a esas UPS
         self.topologia.eliminar_conexion(trafo_id, f"ups_m{modulo}_{bloque}_a")
         self.topologia.eliminar_conexion(trafo_id, f"ups_m{modulo}_{bloque}_b")
+
+    def generar_eventos_fallo_rmu(self, rmu_id: str, tiempo_s: float, estado):
+        eventos = []
+
+        rmu = estado.componentes.get(rmu_id)
+        if rmu is None:
+            return eventos
+
+        # De momento solo tratamos RMU de bloque: rmu_m1_1, rmu_m2_3, etc.
+        if not rmu_id.startswith("rmu_m"):
+            return eventos
+
+        partes = rmu_id.replace("rmu_m", "").split("_")
+        if len(partes) != 2:
+            return eventos
+
+        modulo = partes[0]
+        bloque = partes[1]
+
+        # El bloque 7 es la reserva, no tiene sustituto equivalente
+        if bloque == "7":
+            return eventos
+
+        rmu_reserva_id = f"rmu_m{modulo}_7"
+        trafo_afectado_id = f"trafo_m{modulo}_{bloque}"
+        rmu_modulo_id = f"rmu_modulo_{modulo}"
+
+        rmu_reserva = estado.componentes.get(rmu_reserva_id)
+        if rmu_reserva is None:
+            return eventos
+
+        if rmu_reserva.estado != "reserva":
+            return eventos
+
+        # Reconfiguración topológica:
+        # rmu_modulo_X -> rmu_fallada pasa a rmu_modulo_X -> rmu_reserva
+        self.topologia.reemplazar_conexion(
+            origen_id=rmu_modulo_id,
+            destino_antiguo=rmu_id,
+            destino_nuevo=rmu_reserva_id,
+        )
+
+        # Se elimina la salida de la RMU fallada al trafo afectado
+        self.topologia.eliminar_conexion(
+            origen_id=rmu_id,
+            destino_id=trafo_afectado_id,
+        )
+
+        # La RMU de reserva alimenta el trafo del bloque afectado
+        self.topologia.agregar_conexion(
+            models.ConexionElectrica(
+                origen_id=rmu_reserva_id,
+                destino_id=trafo_afectado_id,
+                tipo="respaldo",
+            )
+        )
+
+        eventos.append(
+            models.EntradaReserva(
+                id=f"entrada_reserva_rmu_m{modulo}_7_por_{rmu_id}_{int(tiempo_s)}",
+                tipo="EntradaReserva",
+                tiempo_s=tiempo_s,
+                duracion_s=0.0,
+                objetivo_id=rmu_reserva_id,
+                objetivo_tipo="RMU",
+                descripcion=f"Entrada de reserva {rmu_reserva_id} por fallo de {rmu_id}",
+                severidad=3,
+                componente_reserva_id=rmu_reserva_id,
+                componente_sustituido_id=rmu_id,
+            )
+        )
+        
+
+        return eventos
+
     
     def generar_eventos_redistribucion_por_sobrecarga(self, zona, evento, estado):
         eventos = []
