@@ -949,6 +949,79 @@ def escenario_dc1_fallo_sts_bloque():
     ]
     return estado, eventos
 
+def escenario_dc1_fallo_doble_sts_modulo():
+    estado= _crear_escenario_tillion_dc1()
+    eventos=[
+        FalloComponente(
+            id="fallo_sts_m1_1",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="sts_m1_1",
+            objetivo_tipo="STS",
+            descripcion="Fallo del STS del bloque m1_1",
+            causa = "Fallo interno STS",
+            severidad="alta",
+            nuevo_estado="fallado"
+        ),
+        FalloComponente(
+            id="fallo_sts_m1_2",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="sts_m1_2",
+            objetivo_tipo="STS",
+            descripcion="Fallo del STS del bloque m1_2",
+            causa = "Fallo interno STS",
+            severidad="alta",
+            nuevo_estado="fallado"
+        ),
+    ]
+    return estado, eventos
+
+def escenario_dc1_fallo_doble_sts_y_emf():
+    estado = _crear_escenario_tillion_dc1()
+    eventos=[
+        FalloComponente(
+            id="fallo_sts_m1_1",
+            tipo="FalloComponente",
+            tiempo_s=5,
+            duracion_s=0,
+            objetivo_id="sts_m1_1",
+            objetivo_tipo="STS",
+            descripcion="Fallo del STS del bloque m1_1",
+            causa = "Fallo interno STS",
+            severidad="alta",
+            nuevo_estado="fallado"
+        ),
+        FalloComponente(
+            id="fallo_sts_m1_2",
+            tipo="FalloComponente",
+            tiempo_s=5,
+            duracion_s=0,
+            objetivo_id="sts_m1_2",
+            objetivo_tipo="STS",
+            descripcion="Fallo del STS del bloque m1_2",
+            causa = "Fallo interno STS",
+            severidad="alta",
+            nuevo_estado="fallado"
+        ),
+        FalloComponente(
+            id="fallo_emf",
+            tipo="FalloComponente",
+            tiempo_s=10,
+            duracion_s=0,
+            objetivo_id="emf_1",
+            objetivo_tipo="EMF",
+            descripcion="Fallo del EMF tras fallo doble de STS",
+            causa = "Fallo en infraestructura AT",
+            severidad="critica",
+            nuevo_estado="fallado"
+        ),
+    ]
+    return estado, eventos
+
+
 def escenario_dc1_fallo_rmu_modulo():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
@@ -999,6 +1072,8 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque": escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque,
     "escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_y_ups_b_bloque": escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_y_ups_b_bloque,
     "escenario_dc1_fallo_sts_bloque": escenario_dc1_fallo_sts_bloque,
+    "escenario_dc1_fallo_doble_sts_modulo": escenario_dc1_fallo_doble_sts_modulo,
+    "escenario_dc1_fallo_doble_sts_y_emf": escenario_dc1_fallo_doble_sts_y_emf,
     "escenario_dc1_fallo_rmu_modulo": escenario_dc1_fallo_rmu_modulo,
     "escenario_dc1_fallo_rmu_bloque": escenario_dc1_fallo_rmu_bloque,
 }

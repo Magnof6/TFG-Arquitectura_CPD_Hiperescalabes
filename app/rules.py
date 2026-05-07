@@ -529,6 +529,9 @@ class MotorReglas:
         ups_ya_programadas = set()
 
         for zona in estado.zonas_it.values():
+
+            if zona.estado == "sin_alimentación" or getattr(zona, "deslastrada", False):
+                continue
             ups_id = zona.alimentacion_preferida
             ups = estado.componentes.get(ups_id)
 
@@ -999,7 +1002,29 @@ class MotorReglas:
         sts_reserva = estado.componentes.get(sts_reserva_id)
 
         if sts_reserva is None or sts_reserva.estado != "reserva":
+            zona_id = f"zona_m{modulo}_{bloque}"
+            zona = estado.zonas_it.get(zona_id)
+
+            if zona is not None:
+                eventos.append(
+                    models.PerdidaSuministro(
+                        id=f"loss_sts_sin_reserva_{sts_id}_{int(tiempo_s)}",
+                        tipo="PerdidaSuministro",
+                        tiempo_s=tiempo_s,
+                        duracion_s=0.0,
+                        objetivo_id=zona_id,
+                        objetivo_tipo="zona_it",
+                        descripcion=f"Pérdida de suministro en {zona_id}: fallo de {sts_id} sin STS de reserva disponible",
+                        severidad=5,
+                        nivel="bloque",
+                        carga_afectada_kw=zona.demanda_kw,
+                    )
+                )
+
             return eventos
+
+        #Marcar la reserva como USADA
+        sts_reserva.estado = "activo"
 
         # Reconfigurar STS de reserva hacia el bus del bloque afectado
         self.topologia.eliminar_conexion(f"ups_m{modulo}_{bloque}_a", sts_id)
