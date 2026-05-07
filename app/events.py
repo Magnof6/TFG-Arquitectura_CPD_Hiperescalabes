@@ -174,6 +174,15 @@ class ProcesadorEventos:
                     trafo_id = componente.id,
                     estado = estado
                 )
+        if componente.tipo.lower() == "sts":
+            derivados.extend(
+                self.motor_reglas.generar_evento_conmutacion_sts(
+                    sts_id=componente.id,
+                    tiempo_s=evento.tiempo_s,
+                    estado=estado
+                )
+            )
+            
         
         return derivados
     

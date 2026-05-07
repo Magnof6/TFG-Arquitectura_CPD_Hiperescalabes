@@ -326,7 +326,7 @@ class MotorReglas:
     def grupo_esta_degradado(self, grupo, estado) -> bool:
         componentes = self.obtener_componentes_grupo(grupo, estado)
 
-        if grupo.tipo_componente.lower() == "rmu":
+        if grupo.tipo_componente.lower() in {"rmu", "sts"}:
             activos_no_reserva = [
                 c for c in componentes
                 if not getattr(c, "es_reserva", False) and c.estado == "activo"
@@ -978,6 +978,72 @@ class MotorReglas:
         # 3) eliminar las conexiones antiguas del trafo fallado a esas UPS
         self.topologia.eliminar_conexion(trafo_id, f"ups_m{modulo}_{bloque}_a")
         self.topologia.eliminar_conexion(trafo_id, f"ups_m{modulo}_{bloque}_b")
+    
+    def generar_evento_conmutacion_sts(self, sts_id: str, tiempo_s: float, estado):
+        eventos = []
+
+        sts = estado.componentes.get(sts_id)
+        if sts is None:
+            return eventos
+
+        partes = sts_id.replace("sts_m", "").split("_")
+        if len(partes) != 2:
+            return eventos
+
+        modulo, bloque = partes
+
+        if bloque == "7":
+            return eventos
+
+        sts_reserva_id = f"sts_m{modulo}_7"
+        sts_reserva = estado.componentes.get(sts_reserva_id)
+
+        if sts_reserva is None or sts_reserva.estado != "reserva":
+            return eventos
+
+        # Reconfigurar STS de reserva hacia el bus del bloque afectado
+        self.topologia.eliminar_conexion(f"ups_m{modulo}_{bloque}_a", sts_id)
+        self.topologia.eliminar_conexion(f"ups_m{modulo}_{bloque}_b", sts_id)
+        self.topologia.eliminar_conexion(sts_id, f"bus_m{modulo}_{bloque}")
+
+        self.topologia.agregar_conexion(
+            models.ConexionElectrica(
+                origen_id=f"ups_m{modulo}_{bloque}_a",
+                destino_id=sts_reserva_id,
+                tipo="respaldo",
+            )
+        )
+        self.topologia.agregar_conexion(
+            models.ConexionElectrica(
+                origen_id=f"ups_m{modulo}_{bloque}_b",
+                destino_id=sts_reserva_id,
+                tipo="respaldo",
+            )
+        )
+        self.topologia.agregar_conexion(
+            models.ConexionElectrica(
+                origen_id=sts_reserva_id,
+                destino_id=f"bus_m{modulo}_{bloque}",
+                tipo="respaldo",
+            )
+        )
+
+        eventos.append(
+            models.EntradaReserva(
+                id=f"entrada_reserva_{sts_reserva_id}_por_{sts_id}_{int(tiempo_s)}",
+                tipo="EntradaReserva",
+                tiempo_s=tiempo_s,
+                duracion_s=0.0,
+                objetivo_id=sts_reserva_id,
+                objetivo_tipo="STS",
+                descripcion=f"Entrada de reserva {sts_reserva_id} por fallo de {sts_id}",
+                severidad=3,
+                componente_reserva_id=sts_reserva_id,
+                componente_sustituido_id=sts_id,
+            )
+        )
+
+        return eventos
 
     def generar_eventos_fallo_rmu(self, rmu_id: str, tiempo_s: float, estado):
         eventos = []

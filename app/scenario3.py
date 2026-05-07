@@ -244,6 +244,7 @@ def _crear_escenario_tillion_dc1():
         # 7 bloques por módulo: 6 activos + 1 reserva
         trafos_modulo = []
         rmus_modulo = []
+        sts_modulo = []
 
         for b in range(1, 8):
             es_reserva = (b == 7)
@@ -334,10 +335,10 @@ def _crear_escenario_tillion_dc1():
                 id=f"sts_m{m}_{b}",
                 nombre=f"STS módulo {m} bloque {b}",
                 tipo="STS",
-                estado="activo",
+                estado=estado_bloque,
                 criticidad=5,
                 tiempo_recuperacion_s=60,
-                es_reserva=False,
+                es_reserva=es_reserva,
                 corriente_nominal_a=1600,
                 tiempo_transferencia_ms=10,
                 fuente_preferida=ups_a.id,
@@ -395,6 +396,7 @@ def _crear_escenario_tillion_dc1():
 
             trafos_modulo.append(trafo.id)
             rmus_modulo.append(rmu.id)
+            sts_modulo.append(sts.id)
 
             conexiones.extend([
                 ConexionElectrica(rmu_modulo.id, rmu.id),
@@ -422,6 +424,15 @@ def _crear_escenario_tillion_dc1():
             nombre=f"RMUs IT módulo {m}",
             tipo_componente="rmu",
             componentes_ids=rmus_modulo,
+            capacidad_necesaria_kw=0,
+            n_requerido=6,
+        )
+
+        grupos[f"grupo_sts_modulo_{m}"] = GrupoRedundancia(
+            id=f"grupo_sts_modulo_{m}",
+            nombre=f"STS IT módulo {m}",
+            tipo_componente="sts",
+            componentes_ids=sts_modulo,
             capacidad_necesaria_kw=0,
             n_requerido=6,
         )
