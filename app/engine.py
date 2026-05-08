@@ -132,7 +132,9 @@ class MotorSimulacion:
 
             tiempo_lote = siguiente.tiempo_s
             estado_global_antes = self.estado.estado_global
+            tiempo_visible_anterior = self.estado.tiempo_actual_s
             self.estado.tiempo_actual_s = tiempo_lote
+            firma_antes = self._firma_snapshot_relevante()
 
             eventos_lote = [siguiente.evento]
 
@@ -189,8 +191,15 @@ class MotorSimulacion:
                     estado_global_despues=estado_global_despues,
                 )
 
-            self.registrar_snapshot(motivo=f"lote_{int(tiempo_lote)}s")
-            self._limpiar_transferencias_bloqueadas()
+            firma_despues = self._firma_snapshot_relevante()
+            hubo_eventos_registrados = bool(registros_pendientes)
+            hubo_cambio_relevante = firma_despues != firma_antes
+
+            if hubo_cambio_relevante:
+                self.registrar_snapshot(motivo=f"lote_{int(tiempo_lote)}s")
+            elif not hubo_eventos_registrados:
+                # Lote fantasma: solo eventos ignorados, no debe mover el tiempo visible
+                self.estado.tiempo_actual_s = tiempo_visible_anterior
         return self.obtener_resultados()
     # -----------------------------------------------------------------
     # 3. RECÁLCULO DEL SISTEMA
@@ -238,6 +247,34 @@ class MotorSimulacion:
             estado_global_despues=estado_global_despues,
         )
         self.estado.registro_eventos.append(registro)
+
+    def _firma_snapshot_relevante(self):
+        return (
+            self.estado.estado_global,
+            self.motor_reglas.carga_servida_kw(self.estado),
+            self.motor_reglas.carga_perdida_kw(self.estado),
+            self.motor_reglas.capacidad_total_activa_kw(self.estado),
+            tuple(sorted(
+                (
+                    comp.id,
+                    getattr(comp, "estado", None),
+                    getattr(comp, "en_bateria", None),
+                    getattr(comp, "alimentando_zona", None),
+                    getattr(comp, "bateria_agotada", None),
+                )
+                for comp in self.estado.componentes.values()
+                if getattr(comp, "tipo", "").lower() in {"ups", "generador", "redelectrica", "emf", "subestacion", "busbar"}
+            )),
+            tuple(sorted(
+                (
+                    zona.id,
+                    zona.estado,
+                    getattr(zona, "deslastrada", False),
+                    getattr(zona, "alimentacion_actual", None),
+                )
+                for zona in self.estado.zonas_it.values()
+            )),
+        )
 
     # -----------------------------------------------------------------
     # 5. MÉTRICAS AUXILIARES
