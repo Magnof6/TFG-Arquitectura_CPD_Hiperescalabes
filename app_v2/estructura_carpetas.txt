@@ -1,0 +1,93 @@
+app_v2/
+│
+├── backend/
+│   │
+│   ├── app/
+│   │   │
+│   │   ├── main.py
+│   │   │
+│   │   ├── api/
+│   │   │   └── routes/
+│   │   │       ├── scenarios.py
+│   │   │       ├── simulations.py
+│   │   │       └── topology.py
+│   │   │
+│   │   ├── domain/
+│   │   │   ├── models.py
+│   │   │   ├── rules.py
+│   │   │   └── topology.py
+│   │   │
+│   │   ├── simulation/
+│   │   │   ├── engine.py
+│   │   │   └── events.py
+│   │   │
+│   │   ├── scenarios/
+│   │   │   └── scenario3.py
+│   │   │
+│   │   ├── schemas/
+│   │   │   ├── component_schema.py
+│   │   │   ├── event_schema.py
+│   │   │   ├── simulation_schema.py
+│   │   │   ├── snapshot_schema.py
+│   │   │   └── topology_schema.py
+│   │   │
+│   │   └── services/
+│   │       ├── scenario_service.py
+│   │       ├── simulation_service.py
+│   │       └── topology_service.py
+│   │
+│   ├── tests/
+│   │
+│   ├── requirements.txt
+│   └── README.md
+│
+├── frontend/
+│   │
+│   ├── src/
+│   │   │
+│   │   ├── app/
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── scenarios/
+│   │   │   ├── simulation/
+│   │   │   ├── topology/
+│   │   │   └── comparison/
+│   │   │
+│   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   ├── charts/
+│   │   │   ├── tables/
+│   │   │   └── ui/
+│   │   │
+│   │   ├── features/
+│   │   │   ├── scenarios/
+│   │   │   ├── events/
+│   │   │   ├── snapshots/
+│   │   │   ├── components/
+│   │   │   └── topology/
+│   │   │
+│   │   ├── services/
+│   │   │   └── api/
+│   │   │
+│   │   ├── store/
+│   │   │
+│   │   ├── types/
+│   │   │
+│   │   └── styles/
+│   │
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── tsconfig.json
+│
+├── docs/
+│   │
+│   ├── requirements/
+│   ├── architecture/
+│   ├── api/
+│   └── ui/
+│
+├── data/
+│   ├── scenarios/
+│   └── exports/
+│
+└── README.md
