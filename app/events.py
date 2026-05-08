@@ -399,7 +399,7 @@ class ProcesadorEventos:
             if hasattr(generador, "arrancado"):
                 generador.arrancado = True
             demanda = self.motor_reglas.demanda_total_kw(estado)
-            capacidad = self.motor_reglas.capacidad_total_activa_kw(estado)
+            capacidad = self.motor_reglas.capacidad_entregable_kw(estado)
             
             #comprobar si este generador realmente puede suministrar
             puede_suministrar = False

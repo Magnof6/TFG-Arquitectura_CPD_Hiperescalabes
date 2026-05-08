@@ -224,7 +224,8 @@ class MotorSimulacion:
             carga_total_kw=self.motor_reglas.demanda_total_kw(self.estado),
             carga_servida_kw=self.motor_reglas.carga_servida_kw(self.estado),
             carga_perdida_kw=self.motor_reglas.carga_perdida_kw(self.estado),
-            capacidad_disponible_kw=self.motor_reglas.capacidad_total_activa_kw(self.estado),
+            capacidad_entregable_kw=self.motor_reglas.capacidad_entregable_kw(self.estado),
+            capacidad_total_activa_kw=self.motor_reglas.capacidad_total_activa_kw(self.estado),
             num_componentes_fallados=self._num_componentes_fallados(),
             num_componentes_reserva_en_uso=self._num_reservas_en_uso(),
             num_salas_degradadas=self._num_salas_degradadas(),
@@ -253,7 +254,7 @@ class MotorSimulacion:
             self.estado.estado_global,
             self.motor_reglas.carga_servida_kw(self.estado),
             self.motor_reglas.carga_perdida_kw(self.estado),
-            self.motor_reglas.capacidad_total_activa_kw(self.estado),
+            self.motor_reglas.capacidad_entregable_kw(self.estado),
             tuple(sorted(
                 (
                     comp.id,
@@ -343,7 +344,8 @@ class MotorSimulacion:
             "carga_servida_kw": carga_servida_kw,
             "carga_perdida_kw": carga_perdida_kw,
             "porcentaje_carga_servida": porcentaje_servido,
-            "capacidad_disponible_kw": self.motor_reglas.capacidad_total_activa_kw(self.estado),
+            "capacidad_entregable_kw":self.motor_reglas.capacidad_entregable_kw(self.estado),
+            "capacidad_total_activa_kw":self.motor_reglas.capacidad_total_activa_kw(self.estado),
             "num_componentes_fallados": self._num_componentes_fallados(),
             "num_reservas_en_uso": self._num_reservas_en_uso(),
             "num_eventos_procesados": len(self.estado.registro_eventos),

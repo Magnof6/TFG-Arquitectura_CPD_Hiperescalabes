@@ -1229,7 +1229,7 @@ class MotorReglas:
 
     def hay_capacidad_comprometida(self, estado) -> bool:
         demanda_total = self.demanda_total_kw(estado)
-        capacidad_total = self.capacidad_total_activa_kw(estado)
+        capacidad_total = self.capacidad_entregable_kw(estado)
         return capacidad_total < demanda_total
     
     def hay_contingencia_fuente_principal(self, estado) -> bool:
@@ -1304,7 +1304,24 @@ class MotorReglas:
                 total += self.obtener_capacidad_componente_kw(comp)
                 
         return total
+    
+    def capacidad_entregable_kw(self, estado) -> float: #capacidad solo de la ruta que alimenta, no de todos los elementos
+        total = 0.0
 
+        for zona in getattr(estado, "zonas_it", {}).values():
+            if getattr(zona, "demanda_kw", 0.0) <= 0:
+                continue
+
+            rutas = self.buscar_rutas_validas_a_destino(
+                destino_id=zona.id,
+                demanda_kw=zona.demanda_kw,
+                estado=estado,
+            )
+
+            if rutas:
+                total += zona.demanda_kw
+        return total
+    
     # ---------------------------------------------------------------------
     # 9. HELPERS INTERNOS
     # ---------------------------------------------------------------------
