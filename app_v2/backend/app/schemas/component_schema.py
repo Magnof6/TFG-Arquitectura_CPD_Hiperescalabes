@@ -1,0 +1,16 @@
+#Es el snapshot que recibirá el front end en formato JSON
+from pydantic import BaseModel
+from typing import Optional
+
+
+class ComponentResponse(BaseModel):
+    id: str
+    nombre: str
+    tipo: str
+    estado: str
+    criticidad: Optional[int] = None
+    es_reserva: Optional[bool] = None
+    capacidad_kw: Optional[float] = None
+    en_bateria: Optional[bool] = None
+    alimentando_zona: Optional[bool] = None
+    bateria_agotada: Optional[bool] = None
