@@ -8,7 +8,7 @@ import heapq
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from models import (
+from app.domain.models import (
     Evento,
     SnapshotSistema,
     RegistroEvento,

@@ -2,7 +2,8 @@
 from __future__ import annotations
 from typing import Optional, List, Dict
 
-import models
+import app.domain.models
+models = app.domain.models
 
 class ProcesadorEventos:
     """

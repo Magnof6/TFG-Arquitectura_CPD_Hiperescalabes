@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from models import (
+from app.domain.models import (
     RedElectrica,
     EMF,
     Subestacion,
@@ -21,8 +21,8 @@ from models import (
     ConmutacionFuente,
     SalidaReserva,
 )
-from topology import TopologiaSistema
-from engine import EstadoSimulacion
+from app.domain.topology import TopologiaSistema
+from app.simulation.engine import EstadoSimulacion
 
 
 # =========================================================
