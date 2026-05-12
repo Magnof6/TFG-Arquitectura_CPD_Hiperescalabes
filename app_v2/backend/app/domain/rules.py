@@ -3,7 +3,8 @@
 from __future__ import annotations
 from typing import List, Optional
 
-import models
+import app.domain.models as models
+
 
 class MotorReglas:
     """

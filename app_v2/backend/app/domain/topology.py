@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Dict, List, Optional, Set
 
-from models import ConexionElectrica
+from app.domain.models import ConexionElectrica
 
 
 class TopologiaSistema:

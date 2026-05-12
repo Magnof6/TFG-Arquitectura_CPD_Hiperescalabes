@@ -13,7 +13,7 @@ from app.domain.models import (
     SnapshotSistema,
     RegistroEvento,
 )
-from events import ProcesadorEventos
+from app.simulation.events import ProcesadorEventos
 
 
 @dataclass(order=True)
