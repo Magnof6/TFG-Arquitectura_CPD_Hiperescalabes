@@ -1066,7 +1066,6 @@ ESCENARIOS_DC1 = {
     "escenario_dc1_fallo_trafo_bloque": escenario_dc1_fallo_trafo_bloque,
     "escenario_dc1_fallo_y_recuperacion_emf": escenario_dc1_fallo_y_recuperacion_emf,
     "escenario_dc1_fallo_emf_y_parada_generador": escenario_dc1_fallo_emf_y_parada_generador,
-    "escenario_dc1_sobrecarga": escenario_dc1_sobrecarga_simple,
     "escenario_dc1_fallo_conmutacion_ups": escenario_dc1_fallo_conmutacion_ups,
     "escenario_dc1_salida_reserva_trafo": escenario_dc1_salida_reserva_trafo,
     "escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque": escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque,
