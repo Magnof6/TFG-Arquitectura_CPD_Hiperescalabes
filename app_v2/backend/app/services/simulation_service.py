@@ -20,6 +20,7 @@ escenarios = {
     }
 
 
+
 def run_simulation(scenario_id: str):
 
     if scenario_id not in escenarios:
@@ -86,20 +87,9 @@ def run_simulation(scenario_id: str):
     ]
 
     components = [
-        ComponentResponse(
-            id=comp.id,
-            nombre=comp.nombre,
-            tipo=comp.tipo,
-            estado=comp.estado,
-            criticidad=getattr(comp, "criticidad", None),
-            es_reserva=getattr(comp, "es_reserva", None),
-            capacidad_kw=getattr(comp, "capacidad_kw", None),
-            en_bateria=getattr(comp, "en_bateria", None),
-            alimentando_zona=getattr(comp, "alimentando_zona", None),
-            bateria_agotada=getattr(comp, "bateria_agotada", None),
-        )
-        for comp in estado.componentes.values()
-    ]
+        ComponentResponse(**build_component_response(component))
+        for component in estado.componentes.values()
+]
 
     topology = build_topology_response(estado.topologia)
 
@@ -112,6 +102,32 @@ def run_simulation(scenario_id: str):
         topology=topology,
     )
 
+def build_component_response(component):
+    common_fields = {
+        "id": getattr(component, "id", ""),
+        "nombre": getattr(component, "nombre", ""),
+        "tipo": getattr(component, "tipo", component.__class__.__name__),
+        "estado": getattr(component, "estado", ""),
+        "criticidad": getattr(component, "criticidad", None),
+        "es_reserva": getattr(component, "es_reserva", None),
+        "capacidad_kw": getattr(component, "capacidad_kw", None),
+        "en_bateria": getattr(component, "en_bateria", None),
+        "alimentando_zona": getattr(component, "alimentando_zona", None),
+        "bateria_agotada": getattr(component, "bateria_agotada", None),
+    }
+
+    excluded = set(common_fields.keys())
+
+    specific = {
+        key: value
+        for key, value in vars(component).items()
+        if key not in excluded
+    }
+
+    return {
+        **common_fields,
+        "specific": specific,
+    }
 
 #Ejecuta simulaciones
 #internamente hace
