@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import type { ComponentResponse } from "../../types/api"
+import StatusBadge from "../ui/StatusBadge"
 
 interface Props {
     components: ComponentResponse[]
@@ -155,7 +156,7 @@ export default function ComponentsAccordion({
                                                             "1px solid #374151",
                                                     }}
                                                 >
-                                                    {component.estado}
+                                                    <StatusBadge status={component.estado} />
                                                 </td>
 
                                                 <td
@@ -213,7 +214,7 @@ export default function ComponentsAccordion({
 
                                                             <p>
                                                                 <strong>Estado:</strong>{" "}
-                                                                {component.estado}
+                                                                <StatusBadge status={component.estado} />
                                                             </p>
 
                                                             <h5>

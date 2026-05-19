@@ -1,4 +1,5 @@
 import type { SimulationKpiResponse } from "../../types/api"
+import StatusBadge from "./StatusBadge"
 
 interface Props {
     kpis: SimulationKpiResponse
@@ -10,7 +11,7 @@ export default function KpiPanel({ kpis }: Props) {
             <h2>KPIs</h2>
 
             <ul>
-                <li>Estado final: {kpis.estado_global_final}</li>
+                <li>Estado final: <StatusBadge status={kpis.estado_global_final} /></li>
                 <li>Tiempo final: {kpis.tiempo_final_s} s</li>
                 <li>Carga total: {kpis.carga_total_kw} kW</li>
                 <li>Carga servida: {kpis.carga_servida_kw} kW</li>
