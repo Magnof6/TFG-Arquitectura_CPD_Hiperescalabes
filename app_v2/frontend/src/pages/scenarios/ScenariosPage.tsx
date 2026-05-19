@@ -10,6 +10,7 @@ import type {
     SimulationResultResponse,
 
 } from "../../types/api"
+import SimulationRunPanel from "../../components/ui/SimulationRunPanel" //Panel para seleccionar escenario y ejecutar simulación
 import KpiPanel from "../../components/ui/KpiPanel" //KPIs
 import EventsTable from "../../components/tables/EventsTable" //Eventos Cronológicos
 import SnapshotsTable from "../../components/tables/SnapshotTable" //Snapshots
@@ -63,38 +64,19 @@ export default function ScenariosPage() {
         <div style={{ padding: "2rem" }}>
             <h1>Simulación eléctrica CPD</h1>
 
-            <section style={{ marginBottom: "2rem" }}>
-                <h2>Escenario</h2>
-
-                <select
-                    value={selectedScenarioId}
-                    onChange={(event) =>
-                        setSelectedScenarioId(event.target.value)
-                    }
-                >
-                    {scenarios.map((scenario) => (
-                        <option key={scenario.id} value={scenario.id}>
-                            {scenario.name}
-                        </option>
-                    ))}
-                </select>
-
-                <button
-                    onClick={handleRunSimulation}
-                    disabled={runningSimulation}
-                    style={{ marginLeft: "1rem" }}
-                >
-                    {runningSimulation
-                        ? "Ejecutando..."
-                        : "Ejecutar simulación"}
-                </button>
-            </section>
+            <SimulationRunPanel
+                scenarios={scenarios}
+                selectedScenarioId={selectedScenarioId}
+                runningSimulation={runningSimulation}
+                onScenarioChange={setSelectedScenarioId}
+                onRunSimulation={handleRunSimulation}
+            />
 
             {simulationResult && (
                 <>
                     <KpiPanel kpis={simulationResult.kpis} /> {/* KPIs */}
 
-                    <EventsTable events={simulationResult.events} />  {/* eventos Cronológicos */} 
+                    <EventsTable events={simulationResult.events} />  {/* eventos Cronológicos */}
 
                     <SnapshotsTable snapshots={simulationResult.snapshots} /> {/* Snapshots */}
 
