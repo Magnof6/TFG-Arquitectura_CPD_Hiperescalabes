@@ -8,9 +8,11 @@ import {
 import type {
     ScenarioResponse,
     SimulationResultResponse,
-    ComponentResponse,
 
 } from "../../types/api"
+import EventsTable from "../../components/tables/EventsTable" //Eventos Cronológicos
+import SnapshotsTable from "../../components/tables/SnapshotTable" //Snapshots
+import ComponentsAccordion from "../../components/tables/ComponentsAccordion" //Componentes (con acordeón para cada tipo)
 
 export default function ScenariosPage() {
     const [scenarios, setScenarios] = useState<ScenarioResponse[]>([])
@@ -19,8 +21,6 @@ export default function ScenariosPage() {
 
     const [loadingScenarios, setLoadingScenarios] = useState(true)
     const [runningSimulation, setRunningSimulation] = useState(false)
-    const [selectedComponent, setSelectedComponent] = useState<ComponentResponse | null>(null)
-    const [expandedComponentTypes, setExpandedComponentTypes] = useState<string[]>([])
     useEffect(() => {
         loadScenarios()
     }, [])
@@ -57,22 +57,6 @@ export default function ScenariosPage() {
     if (loadingScenarios) {
         return <div>Cargando escenarios...</div>
     }
-
-    const groupedComponents =
-        simulationResult?.components.reduce<Record<string, ComponentResponse[]>>(
-            (groups, component) => {
-                const type = component.tipo || "Desconocido"
-
-                if (!groups[type]) {
-                    groups[type] = []
-                }
-
-                groups[type].push(component)
-
-                return groups
-            },
-            {}
-        ) ?? {}
 
     return (
         <div style={{ padding: "2rem" }}>
@@ -129,324 +113,11 @@ export default function ScenariosPage() {
                         </ul>
                     </section>
 
-                    <section style={{ marginTop: "2rem" }}>
-                        <h2>Eventos cronológicos</h2>
+                    <EventsTable events={simulationResult.events} />  {/* eventos Cronológicos */} 
 
-                        <table
-                            style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                                backgroundColor: "#1f2937",
-                            }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Tiempo (s)
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Tipo
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Objetivo
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Estado
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Descripción
-                                    </th>
-                                </tr>
-                            </thead>
+                    <SnapshotsTable snapshots={simulationResult.snapshots} /> {/* Snapshots */}
 
-                            <tbody>
-                                {simulationResult.events.map((event, index) => (
-                                    <tr key={`${event.tiempo_s}-${event.objetivo_id}-${index}`}>
-                                        <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                            {event.tiempo_s}
-                                        </td>
-                                        <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                            {event.tipo_evento}
-                                        </td>
-                                        <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                            {event.objetivo_id}
-                                        </td>
-                                        <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                            {event.estado_global_antes} →{" "}
-                                            {event.estado_global_despues}
-                                        </td>
-                                        <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                            {event.descripcion}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </section>
-
-                    <section style={{ marginTop: "2rem" }}> //snapshots
-                        <h2>Snapshots</h2>
-
-                        <table
-                            style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                                backgroundColor: "#1f2937",
-                            }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Tiempo
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Estado global
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Carga servida
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Carga perdida
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Componentes fallados
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Reservas activas
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Salas degradadas
-                                    </th>
-
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Salas sin servicio
-                                    </th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {simulationResult.snapshots.map(
-                                    (snapshot, index) => (
-                                        <tr key={index}>
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.tiempo_s} s
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.estado_global}
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.carga_servida_kw} kW
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.carga_perdida_kw} kW
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.num_componentes_fallados}
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.num_componentes_reserva_en_uso}
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.num_salas_degradadas}
-                                            </td>
-
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {snapshot.num_salas_sin_servicio}
-                                            </td>
-                                        </tr>
-                                    )
-                                )}
-                            </tbody>
-                        </table>
-                    </section>
-
-                    <section style={{ marginTop: "2rem" }}>
-                        <h2>Componentes</h2>
-
-                        {Object.entries(groupedComponents).map(
-                            ([type, components]) => (
-                                <div
-                                    key={type}
-                                    style={{
-                                        marginBottom: "1rem",
-                                        backgroundColor: "#1f2937",
-                                        border: "1px solid #374151",
-                                    }}
-                                >
-                                    <button
-                                        onClick={() =>
-                                            setExpandedComponentTypes((current) =>
-                                                current.includes(type)
-                                                    ? current.filter((item) => item !== type)
-                                                    : [...current, type]
-                                            )
-                                        }
-                                        style={{
-                                            width: "100%",
-                                            padding: "0.75rem",
-                                            textAlign: "left",
-                                            backgroundColor: "#111827",
-                                            color: "white",
-                                            border: "none",
-                                            cursor: "pointer",
-                                            fontWeight: "bold",
-                                        }}
-                                    >
-                                        {expandedComponentTypes.includes(type) ? "▼" : "▶"} {type} (
-                                        {components.length})
-                                    </button>
-
-                                    {expandedComponentTypes.includes(type) && (
-                                        <table
-                                            style={{
-                                                width: "100%",
-                                                borderCollapse: "collapse",
-                                            }}
-                                        >
-                                            <thead>
-                                                <tr>
-                                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                                        Nombre
-                                                    </th>
-                                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                                        Estado
-                                                    </th>
-                                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                                        Criticidad
-                                                    </th>
-                                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                                        Reserva
-                                                    </th>
-                                                </tr>
-                                            </thead>
-
-                                            <tbody>
-                                                {components.map((component) => (
-                                                    <>
-                                                        <tr
-                                                            key={component.id}
-                                                            onClick={() =>
-                                                                setSelectedComponent((current) =>
-                                                                    current?.id === component.id ? null : component
-                                                                )
-                                                            }
-                                                            style={{
-                                                                cursor: "pointer",
-                                                                backgroundColor:
-                                                                    selectedComponent?.id === component.id
-                                                                        ? "#374151"
-                                                                        : "transparent",
-                                                            }}
-                                                        >
-                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                                                {component.nombre}
-                                                            </td>
-
-                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                                                {component.estado}
-                                                            </td>
-
-                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                                                {component.criticidad ?? "-"}
-                                                            </td>
-
-                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
-                                                                {component.es_reserva ? "Sí" : "No"}
-                                                            </td>
-                                                        </tr>
-
-                                                        {selectedComponent?.id === component.id && (
-                                                            <tr>
-                                                                <td colSpan={4} style={{ padding: "1rem", backgroundColor: "#111827" }}>
-                                                                    <h4>Detalle componente</h4>
-
-                                                                    <p><strong>ID:</strong> {component.id}</p>
-                                                                    <p><strong>Nombre:</strong> {component.nombre}</p>
-                                                                    <p><strong>Tipo:</strong> {component.tipo}</p>
-                                                                    <p><strong>Estado:</strong> {component.estado}</p>
-
-                                                                    <h5>Campos específicos</h5>
-
-                                                                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                                                        <tbody>
-                                                                            {Object.entries(component.specific).map(([key, value]) => (
-                                                                                <tr key={key}>
-                                                                                    <td style={{ padding: "0.5rem", fontWeight: "bold" }}>
-                                                                                        {key}
-                                                                                    </td>
-                                                                                    <td style={{ padding: "0.5rem" }}>
-                                                                                        {String(value)}
-                                                                                    </td>
-                                                                                </tr>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </td>
-                                                            </tr>
-                                                        )}
-                                                    </>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                </div>
-                            )
-                        )}
-
-
-                    </section>
+                    <ComponentsAccordion components={simulationResult.components} />
                 </>
             )}
         </div>
