@@ -20,8 +20,7 @@ export default function ScenariosPage() {
     const [loadingScenarios, setLoadingScenarios] = useState(true)
     const [runningSimulation, setRunningSimulation] = useState(false)
     const [selectedComponent, setSelectedComponent] = useState<ComponentResponse | null>(null)
-    const [expandedComponentType, setExpandedComponentType] = useState<string | null>(null)
-
+    const [expandedComponentTypes, setExpandedComponentTypes] = useState<string[]>([])
     useEffect(() => {
         loadScenarios()
     }, [])
@@ -328,8 +327,10 @@ export default function ScenariosPage() {
                                 >
                                     <button
                                         onClick={() =>
-                                            setExpandedComponentType(
-                                                expandedComponentType === type ? null : type
+                                            setExpandedComponentTypes((current) =>
+                                                current.includes(type)
+                                                    ? current.filter((item) => item !== type)
+                                                    : [...current, type]
                                             )
                                         }
                                         style={{
@@ -343,11 +344,11 @@ export default function ScenariosPage() {
                                             fontWeight: "bold",
                                         }}
                                     >
-                                        {expandedComponentType === type ? "▼" : "▶"} {type} (
+                                        {expandedComponentTypes.includes(type) ? "▼" : "▶"} {type} (
                                         {components.length})
                                     </button>
 
-                                    {expandedComponentType === type && (
+                                    {expandedComponentTypes.includes(type) && (
                                         <table
                                             style={{
                                                 width: "100%",
@@ -373,53 +374,69 @@ export default function ScenariosPage() {
 
                                             <tbody>
                                                 {components.map((component) => (
-                                                    <tr
-                                                        key={component.id}
-                                                        onClick={() => setSelectedComponent(component)}
-                                                        style={{
-                                                            cursor: "pointer",
-                                                            backgroundColor:
-                                                                selectedComponent?.id === component.id
-                                                                    ? "#374151"
-                                                                    : "transparent",
-                                                        }}
-                                                    >
-                                                        <td
+                                                    <>
+                                                        <tr
+                                                            key={component.id}
+                                                            onClick={() =>
+                                                                setSelectedComponent((current) =>
+                                                                    current?.id === component.id ? null : component
+                                                                )
+                                                            }
                                                             style={{
-                                                                padding: "0.5rem",
-                                                                borderTop: "1px solid #374151",
+                                                                cursor: "pointer",
+                                                                backgroundColor:
+                                                                    selectedComponent?.id === component.id
+                                                                        ? "#374151"
+                                                                        : "transparent",
                                                             }}
                                                         >
-                                                            {component.nombre}
-                                                        </td>
+                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
+                                                                {component.nombre}
+                                                            </td>
 
-                                                        <td
-                                                            style={{
-                                                                padding: "0.5rem",
-                                                                borderTop: "1px solid #374151",
-                                                            }}
-                                                        >
-                                                            {component.estado}
-                                                        </td>
+                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
+                                                                {component.estado}
+                                                            </td>
 
-                                                        <td
-                                                            style={{
-                                                                padding: "0.5rem",
-                                                                borderTop: "1px solid #374151",
-                                                            }}
-                                                        >
-                                                            {component.criticidad ?? "-"}
-                                                        </td>
+                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
+                                                                {component.criticidad ?? "-"}
+                                                            </td>
 
-                                                        <td
-                                                            style={{
-                                                                padding: "0.5rem",
-                                                                borderTop: "1px solid #374151",
-                                                            }}
-                                                        >
-                                                            {component.es_reserva ? "Sí" : "No"}
-                                                        </td>
-                                                    </tr>
+                                                            <td style={{ padding: "0.5rem", borderTop: "1px solid #374151" }}>
+                                                                {component.es_reserva ? "Sí" : "No"}
+                                                            </td>
+                                                        </tr>
+
+                                                        {selectedComponent?.id === component.id && (
+                                                            <tr>
+                                                                <td colSpan={4} style={{ padding: "1rem", backgroundColor: "#111827" }}>
+                                                                    <h4>Detalle componente</h4>
+
+                                                                    <p><strong>ID:</strong> {component.id}</p>
+                                                                    <p><strong>Nombre:</strong> {component.nombre}</p>
+                                                                    <p><strong>Tipo:</strong> {component.tipo}</p>
+                                                                    <p><strong>Estado:</strong> {component.estado}</p>
+
+                                                                    <h5>Campos específicos</h5>
+
+                                                                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                                                        <tbody>
+                                                                            {Object.entries(component.specific).map(([key, value]) => (
+                                                                                <tr key={key}>
+                                                                                    <td style={{ padding: "0.5rem", fontWeight: "bold" }}>
+                                                                                        {key}
+                                                                                    </td>
+                                                                                    <td style={{ padding: "0.5rem" }}>
+                                                                                        {String(value)}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </>
                                                 ))}
                                             </tbody>
                                         </table>
@@ -428,62 +445,7 @@ export default function ScenariosPage() {
                             )
                         )}
 
-                        {selectedComponent && (
-                            <section
-                                style={{
-                                    marginTop: "2rem",
-                                    padding: "1rem",
-                                    backgroundColor: "#1f2937",
-                                    border: "1px solid #374151",
-                                }}
-                            >
-                                <h3>Detalle componente</h3>
 
-                                <p>
-                                    <strong>ID:</strong> {selectedComponent.id}
-                                </p>
-                                <p>
-                                    <strong>Nombre:</strong> {selectedComponent.nombre}
-                                </p>
-                                <p>
-                                    <strong>Tipo:</strong> {selectedComponent.tipo}
-                                </p>
-                                <p>
-                                    <strong>Estado:</strong> {selectedComponent.estado}
-                                </p>
-
-                                <h4>Campos específicos</h4>
-
-                                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                    <tbody>
-                                        {Object.entries(selectedComponent.specific).map(
-                                            ([key, value]) => (
-                                                <tr key={key}>
-                                                    <td
-                                                        style={{
-                                                            padding: "0.5rem",
-                                                            borderTop: "1px solid #374151",
-                                                            fontWeight: "bold",
-                                                            width: "30%",
-                                                        }}
-                                                    >
-                                                        {key}
-                                                    </td>
-                                                    <td
-                                                        style={{
-                                                            padding: "0.5rem",
-                                                            borderTop: "1px solid #374151",
-                                                        }}
-                                                    >
-                                                        {String(value)}
-                                                    </td>
-                                                </tr>
-                                            )
-                                        )}
-                                    </tbody>
-                                </table>
-                            </section>
-                        )}
                     </section>
                 </>
             )}
