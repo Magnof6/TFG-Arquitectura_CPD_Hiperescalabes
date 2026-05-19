@@ -15,6 +15,7 @@ import KpiPanel from "../../components/ui/KpiPanel" //KPIs
 import EventsTable from "../../components/tables/EventsTable" //Eventos Cronológicos
 import SnapshotsTable from "../../components/tables/SnapshotTable" //Snapshots
 import ComponentsAccordion from "../../components/tables/ComponentsAccordion" //Componentes (con acordeón para cada tipo)
+import ExportMenu from "../../components/ui/ExportMenu" //Menú para exportar resultados (JSON/CSV)
 
 export default function ScenariosPage() {
     const [scenarios, setScenarios] = useState<ScenarioResponse[]>([])
@@ -74,6 +75,7 @@ export default function ScenariosPage() {
 
             {simulationResult && (
                 <>
+                    <ExportMenu result={simulationResult} /> {/* Menú para exportar resultados */}
                     <KpiPanel kpis={simulationResult.kpis} /> {/* KPIs */}
 
                     <EventsTable events={simulationResult.events} />  {/* eventos Cronológicos */}
