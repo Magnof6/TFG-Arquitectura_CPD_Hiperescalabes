@@ -16,6 +16,7 @@ import EventsTable from "../../components/tables/EventsTable" //Eventos Cronoló
 import SnapshotsTable from "../../components/tables/SnapshotTable" //Snapshots
 import ComponentsAccordion from "../../components/tables/ComponentsAccordion" //Componentes (con acordeón para cada tipo)
 import ExportMenu from "../../components/ui/ExportMenu" //Menú para exportar resultados (JSON/CSV)
+import TopologyGraph from "../../components/charts/TopologyGraph"
 
 export default function ScenariosPage() {
     const [scenarios, setScenarios] = useState<ScenarioResponse[]>([])
@@ -77,11 +78,9 @@ export default function ScenariosPage() {
                 <>
                     <ExportMenu result={simulationResult} /> {/* Menú para exportar resultados */}
                     <KpiPanel kpis={simulationResult.kpis} /> {/* KPIs */}
-
                     <EventsTable events={simulationResult.events} />  {/* eventos Cronológicos */}
-
                     <SnapshotsTable snapshots={simulationResult.snapshots} /> {/* Snapshots */}
-
+                    <TopologyGraph topology={simulationResult.topology} /> {/* Gráfico de topología */}
                     <ComponentsAccordion components={simulationResult.components} /> {/* Componentes (con acordeón para cada tipo) */}
                 </>
             )}
