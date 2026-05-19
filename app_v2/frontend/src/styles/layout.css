@@ -1,0 +1,22 @@
+.section-card {
+    margin-top: 2rem;
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.section-card-title {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.page-container {
+    padding: 2rem;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}

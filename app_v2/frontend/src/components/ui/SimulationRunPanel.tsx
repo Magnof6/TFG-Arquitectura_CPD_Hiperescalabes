@@ -16,27 +16,30 @@ export default function SimulationRunPanel({
     onRunSimulation,
 }: Props) {
     return (
-        <section style={{ marginBottom: "2rem" }}>
+        <section className="form-panel">
             <h2>Escenario</h2>
 
-            <select
-                value={selectedScenarioId}
-                onChange={(event) => onScenarioChange(event.target.value)}
-            >
-                {scenarios.map((scenario) => (
-                    <option key={scenario.id} value={scenario.id}>
-                        {scenario.name}
-                    </option>
-                ))}
-            </select>
+            <div className="form-control">
+                <select
+                    className="form-select"
+                    value={selectedScenarioId}
+                    onChange={(event) => onScenarioChange(event.target.value)}
+                >
+                    {scenarios.map((scenario) => (
+                        <option key={scenario.id} value={scenario.id}>
+                            {scenario.name}
+                        </option>
+                    ))}
+                </select>
 
-            <button
-                onClick={onRunSimulation}
-                disabled={runningSimulation}
-                style={{ marginLeft: "1rem" }}
-            >
-                {runningSimulation ? "Ejecutando..." : "Ejecutar simulación"}
-            </button>
+                <button
+                    className="button"
+                    onClick={onRunSimulation}
+                    disabled={runningSimulation}
+                >
+                    {runningSimulation ? "Ejecutando..." : "Ejecutar simulación"}
+                </button>
+            </div>
         </section>
     )
 }

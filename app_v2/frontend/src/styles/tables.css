@@ -1,0 +1,57 @@
+.table-container {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #1f2937;
+}
+
+.table-header {
+    text-align: left;
+    padding: 0.5rem;
+}
+
+.table-cell {
+    padding: 0.5rem;
+    border-top: 1px solid #374151;
+}
+
+.table-row-clickable {
+    cursor: pointer;
+}
+
+.table-row-selected {
+    background-color: #374151;
+}
+
+.accordion-group {
+    margin-bottom: 1rem;
+    background-color: #1f2937;
+    border: 1px solid #374151;
+}
+
+.accordion-button {
+    width: 100%;
+    padding: 0.75rem;
+    text-align: left;
+    background-color: #111827;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.component-detail {
+    padding: 1rem;
+    background-color: #111827;
+}
+
+.filters-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filters-counter {
+    color: #9ca3af;
+}

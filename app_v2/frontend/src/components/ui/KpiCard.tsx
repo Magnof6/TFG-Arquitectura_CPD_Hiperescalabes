@@ -1,48 +1,25 @@
-//CSS para tarjetas de KPIs individuales, usadas dentro de KpiPanel
 interface Props {
     title: string
     value: string | number | React.ReactNode
     unit?: string
 }
 
-export default function KpiCard({ title, value, unit }: Props) {
+export default function KpiCard({
+    title,
+    value,
+    unit,
+}: Props) {
     return (
-        <div
-            style={{
-                backgroundColor: "#1f2937",
-                border: "1px solid #374151",
-                borderRadius: "0.5rem",
-                padding: "1rem",
-            }}
-        >
-            <p
-                style={{
-                    margin: 0,
-                    marginBottom: "0.5rem",
-                    color: "#9ca3af",
-                    fontSize: "0.85rem",
-                }}
-            >
+        <div className="kpi-card">
+            <p className="kpi-card-title">
                 {title}
             </p>
 
-            <p
-                style={{
-                    margin: 0,
-                    fontSize: "1.4rem",
-                    fontWeight: "bold",
-                    color: "white",
-                }}
-            >
+            <p className="kpi-card-value">
                 {value}
+
                 {unit && (
-                    <span
-                        style={{
-                            marginLeft: "0.25rem",
-                            fontSize: "0.9rem",
-                            color: "#9ca3af",
-                        }}
-                    >
+                    <span className="kpi-card-unit">
                         {unit}
                     </span>
                 )}

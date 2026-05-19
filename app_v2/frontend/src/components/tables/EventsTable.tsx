@@ -14,9 +14,7 @@ export default function EventsTable({ events }: Props) {
     const [selectedFinalState, setSelectedFinalState] = useState("all")
 
     const eventTypes = useMemo(() => {
-        return Array.from(
-            new Set(events.map((event) => event.tipo_evento))
-        ).sort()
+        return Array.from(new Set(events.map((event) => event.tipo_evento))).sort()
     }, [events])
 
     const finalStates = useMemo(() => {
@@ -28,8 +26,7 @@ export default function EventsTable({ events }: Props) {
     const filteredEvents = useMemo(() => {
         return events.filter((event) => {
             const matchesType =
-                selectedEventType === "all" ||
-                event.tipo_evento === selectedEventType
+                selectedEventType === "all" || event.tipo_evento === selectedEventType
 
             const matchesFinalState =
                 selectedFinalState === "all" ||
@@ -41,22 +38,13 @@ export default function EventsTable({ events }: Props) {
 
     return (
         <SectionCard title="Eventos cronológicos">
-            <div
-                style={{
-                    display: "flex",
-                    gap: "1rem",
-                    marginBottom: "1rem",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                }}
-            >
+            <div className="filters-container">
                 <label>
                     Tipo de evento:{" "}
                     <select
+                        className="form-select"
                         value={selectedEventType}
-                        onChange={(event) =>
-                            setSelectedEventType(event.target.value)
-                        }
+                        onChange={(event) => setSelectedEventType(event.target.value)}
                     >
                         <option value="all">Todos</option>
 
@@ -71,10 +59,9 @@ export default function EventsTable({ events }: Props) {
                 <label>
                     Estado global después:{" "}
                     <select
+                        className="form-select"
                         value={selectedFinalState}
-                        onChange={(event) =>
-                            setSelectedFinalState(event.target.value)
-                        }
+                        onChange={(event) => setSelectedFinalState(event.target.value)}
                     >
                         <option value="all">Todos</option>
 
@@ -86,104 +73,36 @@ export default function EventsTable({ events }: Props) {
                     </select>
                 </label>
 
-                <span style={{ color: "#9ca3af" }}>
+                <span className="filters-counter">
                     Mostrando {filteredEvents.length} de {events.length} eventos
                 </span>
             </div>
 
-            <table
-                style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    backgroundColor: "#1f2937",
-                }}
-            >
+            <table className="table-container">
                 <thead>
                     <tr>
-                        <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                            Tiempo (s)
-                        </th>
-
-                        <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                            Tipo de evento
-                        </th>
-
-                        <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                            Componente objetivo
-                        </th>
-
-                        <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                            Estado global antes
-                        </th>
-
-                        <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                            Estado global después
-                        </th>
-
-                        <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                            Descripción
-                        </th>
+                        <th className="table-header">Tiempo (s)</th>
+                        <th className="table-header">Tipo de evento</th>
+                        <th className="table-header">Componente objetivo</th>
+                        <th className="table-header">Estado global antes</th>
+                        <th className="table-header">Estado global después</th>
+                        <th className="table-header">Descripción</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     {filteredEvents.map((event, index) => (
-                        <tr
-                            key={`${event.tiempo_s}-${event.objetivo_id}-${index}`}
-                        >
-                            <td
-                                style={{
-                                    padding: "0.5rem",
-                                    borderTop: "1px solid #374151",
-                                }}
-                            >
-                                {event.tiempo_s}
-                            </td>
-
-                            <td
-                                style={{
-                                    padding: "0.5rem",
-                                    borderTop: "1px solid #374151",
-                                }}
-                            >
-                                {event.tipo_evento}
-                            </td>
-
-                            <td
-                                style={{
-                                    padding: "0.5rem",
-                                    borderTop: "1px solid #374151",
-                                }}
-                            >
-                                {event.objetivo_id}
-                            </td>
-
-                            <td
-                                style={{
-                                    padding: "0.5rem",
-                                    borderTop: "1px solid #374151",
-                                }}
-                            >
+                        <tr key={`${event.tiempo_s}-${event.objetivo_id}-${index}`}>
+                            <td className="table-cell">{event.tiempo_s}</td>
+                            <td className="table-cell">{event.tipo_evento}</td>
+                            <td className="table-cell">{event.objetivo_id}</td>
+                            <td className="table-cell">
                                 <StatusBadge status={event.estado_global_antes} />
                             </td>
-
-                            <td
-                                style={{
-                                    padding: "0.5rem",
-                                    borderTop: "1px solid #374151",
-                                }}
-                            >
+                            <td className="table-cell">
                                 <StatusBadge status={event.estado_global_despues} />
                             </td>
-
-                            <td
-                                style={{
-                                    padding: "0.5rem",
-                                    borderTop: "1px solid #374151",
-                                }}
-                            >
-                                {event.descripcion}
-                            </td>
+                            <td className="table-cell">{event.descripcion}</td>
                         </tr>
                     ))}
                 </tbody>

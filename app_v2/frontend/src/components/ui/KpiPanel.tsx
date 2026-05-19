@@ -11,13 +11,7 @@ interface Props {
 export default function KpiPanel({ kpis }: Props) {
     return (
         <SectionCard title="KPIs">
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "1rem",
-                }}
-            >
+            <div className="kpi-grid">
                 <KpiCard title="Estado final" value={<StatusBadge status={kpis.estado_global_final} />} />
                 <KpiCard title="Tiempo final" value={kpis.tiempo_final_s} unit="s" />
                 <KpiCard title="Carga total" value={kpis.carga_total_kw} unit="kW" />

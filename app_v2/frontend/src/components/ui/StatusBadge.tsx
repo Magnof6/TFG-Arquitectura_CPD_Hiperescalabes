@@ -2,7 +2,7 @@ interface Props {
     status: string
 }
 
-function getStatusStyles(status: string) {
+function getStatusClass(status: string) {
     const normalizedStatus = status.toLowerCase()
 
     if (
@@ -10,20 +10,14 @@ function getStatusStyles(status: string) {
         normalizedStatus.includes("operativo") ||
         normalizedStatus.includes("alimentado")
     ) {
-        return {
-            backgroundColor: "#064e3b",
-            color: "#d1fae5",
-        }
+        return "status-badge--success"
     }
 
     if (
         normalizedStatus.includes("degradado") ||
         normalizedStatus.includes("reserva")
     ) {
-        return {
-            backgroundColor: "#78350f",
-            color: "#fef3c7",
-        }
+        return "status-badge--warning"
     }
 
     if (
@@ -31,31 +25,16 @@ function getStatusStyles(status: string) {
         normalizedStatus.includes("sin_alimentacion") ||
         normalizedStatus.includes("perdida")
     ) {
-        return {
-            backgroundColor: "#7f1d1d",
-            color: "#fee2e2",
-        }
+        return "status-badge--danger"
     }
 
-    return {
-        backgroundColor: "#374151",
-        color: "#f9fafb",
-    }
+    return "status-badge--neutral"
 }
 
 export default function StatusBadge({ status }: Props) {
-    const styles = getStatusStyles(status)
-
     return (
         <span
-            style={{
-                display: "inline-block",
-                padding: "0.2rem 0.5rem",
-                borderRadius: "999px",
-                fontSize: "0.8rem",
-                fontWeight: 600,
-                ...styles,
-            }}
+            className={`status-badge ${getStatusClass(status)}`}
         >
             {status}
         </span>

@@ -13,8 +13,9 @@ export default function ComponentsAccordion({ components }: Props) {
     const [selectedComponent, setSelectedComponent] =
         useState<ComponentResponse | null>(null)
 
-    const [expandedComponentTypes, setExpandedComponentTypes] =
-        useState<string[]>([])
+    const [expandedComponentTypes, setExpandedComponentTypes] = useState<
+        string[]
+    >([])
 
     const [selectedStatus, setSelectedStatus] = useState("all")
     const [searchTerm, setSearchTerm] = useState("")
@@ -59,18 +60,11 @@ export default function ComponentsAccordion({ components }: Props) {
 
     return (
         <SectionCard title="Componentes">
-            <div
-                style={{
-                    display: "flex",
-                    gap: "1rem",
-                    marginBottom: "1rem",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                }}
-            >
+            <div className="filters-container">
                 <label>
                     Buscar:{" "}
                     <input
+                        className ="form-input"
                         type="text"
                         value={searchTerm}
                         placeholder="nombre o id"
@@ -81,6 +75,7 @@ export default function ComponentsAccordion({ components }: Props) {
                 <label>
                     Estado:{" "}
                     <select
+                        className="form-select"
                         value={selectedStatus}
                         onChange={(event) => setSelectedStatus(event.target.value)}
                     >
@@ -94,21 +89,16 @@ export default function ComponentsAccordion({ components }: Props) {
                     </select>
                 </label>
 
-                <span style={{ color: "#9ca3af" }}>
-                    Mostrando {filteredComponents.length} de {components.length} componentes
+                <span className="filters-counter">
+                    Mostrando {filteredComponents.length} de {components.length}{" "}
+                    componentes
                 </span>
             </div>
 
             {Object.entries(groupedComponents).map(([type, components]) => (
-                <div
-                    key={type}
-                    style={{
-                        marginBottom: "1rem",
-                        backgroundColor: "#1f2937",
-                        border: "1px solid #374151",
-                    }}
-                >
+                <div key={type} className="accordion-group">
                     <button
+                        className="accordion-button"
                         onClick={() =>
                             setExpandedComponentTypes((current) =>
                                 current.includes(type)
@@ -116,42 +106,19 @@ export default function ComponentsAccordion({ components }: Props) {
                                     : [...current, type]
                             )
                         }
-                        style={{
-                            width: "100%",
-                            padding: "0.75rem",
-                            textAlign: "left",
-                            backgroundColor: "#111827",
-                            color: "white",
-                            border: "none",
-                            cursor: "pointer",
-                            fontWeight: "bold",
-                        }}
                     >
                         {expandedComponentTypes.includes(type) ? "▼" : "▶"} {type} (
                         {components.length})
                     </button>
 
                     {expandedComponentTypes.includes(type) && (
-                        <table
-                            style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                            }}
-                        >
+                        <table className="table-container">
                             <thead>
                                 <tr>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Nombre
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Estado
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Criticidad
-                                    </th>
-                                    <th style={{ textAlign: "left", padding: "0.5rem" }}>
-                                        Reserva
-                                    </th>
+                                    <th className="table-header">Nombre</th>
+                                    <th className="table-header">Estado</th>
+                                    <th className="table-header">Criticidad</th>
+                                    <th className="table-header">Reserva</th>
                                 </tr>
                             </thead>
 
@@ -165,71 +132,44 @@ export default function ComponentsAccordion({ components }: Props) {
                                                     current?.id === component.id ? null : component
                                                 )
                                             }
-                                            style={{
-                                                cursor: "pointer",
-                                                backgroundColor:
-                                                    selectedComponent?.id === component.id
-                                                        ? "#374151"
-                                                        : "transparent",
-                                            }}
+                                            className={
+                                                selectedComponent?.id === component.id
+                                                    ? "table-row-clickable table-row-selected"
+                                                    : "table-row-clickable"
+                                            }
                                         >
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
-                                                {component.nombre}
-                                            </td>
+                                            <td className="table-cell">{component.nombre}</td>
 
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
+                                            <td className="table-cell">
                                                 <StatusBadge status={component.estado} />
                                             </td>
 
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
+                                            <td className="table-cell">
                                                 {component.criticidad ?? "-"}
                                             </td>
 
-                                            <td
-                                                style={{
-                                                    padding: "0.5rem",
-                                                    borderTop: "1px solid #374151",
-                                                }}
-                                            >
+                                            <td className="table-cell">
                                                 {component.es_reserva ? "Sí" : "No"}
                                             </td>
                                         </tr>
 
                                         {selectedComponent?.id === component.id && (
                                             <tr>
-                                                <td
-                                                    colSpan={4}
-                                                    style={{
-                                                        padding: "1rem",
-                                                        backgroundColor: "#111827",
-                                                    }}
-                                                >
+                                                <td colSpan={4} className="component-detail">
                                                     <h4>Detalle componente</h4>
 
                                                     <p>
                                                         <strong>ID:</strong> {component.id}
                                                     </p>
+
                                                     <p>
                                                         <strong>Nombre:</strong> {component.nombre}
                                                     </p>
+
                                                     <p>
                                                         <strong>Tipo:</strong> {component.tipo}
                                                     </p>
+
                                                     <p>
                                                         <strong>Estado:</strong>{" "}
                                                         <StatusBadge status={component.estado} />
@@ -237,25 +177,16 @@ export default function ComponentsAccordion({ components }: Props) {
 
                                                     <h5>Campos específicos</h5>
 
-                                                    <table
-                                                        style={{
-                                                            width: "100%",
-                                                            borderCollapse: "collapse",
-                                                        }}
-                                                    >
+                                                    <table className="table-container">
                                                         <tbody>
                                                             {Object.entries(component.specific).map(
                                                                 ([key, value]) => (
                                                                     <tr key={key}>
-                                                                        <td
-                                                                            style={{
-                                                                                padding: "0.5rem",
-                                                                                fontWeight: "bold",
-                                                                            }}
-                                                                        >
-                                                                            {key}
+                                                                        <td className="table-cell">
+                                                                            <strong>{key}</strong>
                                                                         </td>
-                                                                        <td style={{ padding: "0.5rem" }}>
+
+                                                                        <td className="table-cell">
                                                                             {String(value)}
                                                                         </td>
                                                                     </tr>

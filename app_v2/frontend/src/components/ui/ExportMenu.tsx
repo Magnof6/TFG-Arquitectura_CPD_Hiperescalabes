@@ -11,10 +11,7 @@ function downloadFile(
 ) {
     const BOM = "\uFEFF"
 
-    const blob = new Blob(
-        [BOM + content],
-        { type: mimeType }
-    )
+    const blob = new Blob([BOM + content], { type: mimeType })
 
     const url = URL.createObjectURL(blob)
 
@@ -68,12 +65,14 @@ export default function ExportMenu({ result }: Props) {
         downloadFile(
             `${result.scenario_id}_result.json`,
             content,
-            "application/json"
+            "application/json;charset=utf-8"
         )
     }
 
     function handleExportEventsCsv() {
-        const csv = convertToCsv(result.events as unknown as Record<string, unknown>[])
+        const csv = convertToCsv(
+            result.events as unknown as Record<string, unknown>[]
+        )
 
         downloadFile(
             `${result.scenario_id}_events.csv`,
@@ -95,23 +94,16 @@ export default function ExportMenu({ result }: Props) {
     }
 
     return (
-        <section
-            style={{
-                marginTop: "2rem",
-                display: "flex",
-                gap: "1rem",
-                flexWrap: "wrap",
-            }}
-        >
-            <button onClick={handleExportJson}>
+        <section className="button-group">
+            <button className="button button-secondary" onClick={handleExportJson}>
                 Exportar resultado JSON
             </button>
 
-            <button onClick={handleExportEventsCsv}>
+            <button className="button button-secondary" onClick={handleExportEventsCsv}>
                 Exportar eventos CSV
             </button>
 
-            <button onClick={handleExportSnapshotsCsv}>
+            <button className="button button-secondary" onClick={handleExportSnapshotsCsv}>
                 Exportar snapshots CSV
             </button>
         </section>

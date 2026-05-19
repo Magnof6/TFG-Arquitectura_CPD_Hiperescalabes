@@ -1,0 +1,52 @@
+.form-panel {
+    margin-bottom: 2rem;
+}
+
+.form-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-select,
+.form-input {
+    background-color: #1f2937;
+    color: white;
+    border: 1px solid #374151;
+    border-radius: 0.4rem;
+    padding: 0.45rem 0.6rem;
+}
+
+.button {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.4rem;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.button:hover {
+    background-color: #1d4ed8;
+}
+
+.button:disabled {
+    background-color: #4b5563;
+    cursor: not-allowed;
+}
+
+.button-secondary {
+    background-color: #374151;
+}
+
+.button-secondary:hover {
+    background-color: #4b5563;
+}
+
+.button-group {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}

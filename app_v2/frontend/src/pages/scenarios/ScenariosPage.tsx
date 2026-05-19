@@ -62,7 +62,7 @@ export default function ScenariosPage() {
     }
 
     return (
-        <div style={{ padding: "2rem" }}>
+        <div className="page-container">
             <h1>Simulación eléctrica CPD</h1>
 
             <SimulationRunPanel
