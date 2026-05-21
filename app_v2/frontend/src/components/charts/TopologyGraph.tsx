@@ -4,6 +4,7 @@ import {
     MarkerType,
     MiniMap,
     ReactFlow,
+    Position
 } from "@xyflow/react"
 
 import type { Edge, Node } from "@xyflow/react"
@@ -38,6 +39,7 @@ function normalize(value?: string): string {
 
 function getStatusLabel(node: TopologyNode): string {
     const status = normalize(node.status)
+    if (isReserveBlock(node)) return "Reserva"
 
     if (node.id.startsWith("sala_")) {
         if (status === "alimentado" || status === "alimentada") return "Recibiendo energía"
@@ -73,8 +75,16 @@ function getStatusLabel(node: TopologyNode): string {
     }
 }
 
+function isReserveBlock(node: TopologyNode): boolean {
+    return getBlockNumber(node) === 7
+}
+
 function getNodeColor(node: TopologyNode): string {
     const status = normalize(node.status)
+
+    if (isReserveBlock(node)) {
+        return "#3b82f6"
+    }
 
     if (
         status === "activo" ||
@@ -155,11 +165,10 @@ function getPosition(node: TopologyNode): { x: number; y: number } {
         const row = Math.floor((generatorNumber - 1) / 7)
 
         return {
-            x: 260 + col * 160,
-            y: 720 + row * 95,
+            x: -500 + col * 150,
+            y: 500 + row * 105,
         }
     }
-
     if (id.startsWith("rmu_modulo_")) {
         const moduleNumber = getModuleNumber(node)
 
@@ -172,15 +181,15 @@ function getPosition(node: TopologyNode): { x: number; y: number } {
     const moduleNumber = getModuleNumber(node)
     const blockNumber = getBlockNumber(node)
 
-    const moduleStartX = 80 + (moduleNumber - 1) * 980
-    const blockX = moduleStartX + (blockNumber - 1) * 135
+    const moduleStartX = 340 + (moduleNumber - 1) * 1120
+    const blockX = moduleStartX + (blockNumber - 1) * 155
     const blockTopY = 1050
 
     if (id.startsWith("rmu_m")) return { x: blockX, y: blockTopY }
     if (id.startsWith("trafo_m")) return { x: blockX, y: blockTopY + 120 }
-    if (id.includes("_a") && id.startsWith("ups_m")) return { x: blockX - 45, y: blockTopY + 250 }
-    if (id.includes("_b") && id.startsWith("ups_m")) return { x: blockX + 45, y: blockTopY + 370 }
-    if (id.startsWith("sts_m")) return { x: blockX, y: blockTopY + 500 }
+    if (id.includes("_a") && id.startsWith("ups_m")) return { x: blockX - 42, y: blockTopY + 250 }
+    if (id.includes("_b") && id.startsWith("ups_m")) return { x: blockX + 42, y: blockTopY + 250 }
+    if (id.startsWith("sts_m")) return { x: blockX, y: blockTopY + 390 }
     if (id.startsWith("bus_m")) return { x: blockX, y: blockTopY + 620 }
     if (id.startsWith("sala_m")) return { x: blockX, y: blockTopY + 740 }
     if (id.startsWith("zona_m")) return { x: blockX, y: blockTopY + 860 }
@@ -189,26 +198,44 @@ function getPosition(node: TopologyNode): { x: number; y: number } {
 }
 
 function buildFlowNodes(topologyNodes: TopologyNode[]): Node[] {
-    return topologyNodes.map((node) => ({
-        id: node.id,
-        position: getPosition(node),
-        data: {
-            label: getNodeLabel(node),
-        },
-        style: {
-            backgroundColor: getNodeColor(node),
-            color: "#ffffff",
-            border: "2px solid rgba(255, 255, 255, 0.35)",
-            borderRadius: "10px",
-            padding: "8px",
-            width: 120,
-            minHeight: 46,
-            fontSize: "10px",
-            fontWeight: 600,
-            textAlign: "center",
-            whiteSpace: "pre-line",
-        },
-    }))
+    return topologyNodes.map((node) => {
+        const isGenerator = node.id.startsWith("gen_dc1_")
+        const generatorNumber = getGeneratorNumber(node)
+        const generatorRow = Math.floor((generatorNumber - 1) / 7)
+
+        return {
+            id: node.id,
+            position: getPosition(node),
+
+            sourcePosition:
+                isGenerator && generatorRow === 1
+                    ? Position.Top
+                    : Position.Bottom,
+
+            targetPosition:
+                isGenerator && generatorRow === 1
+                    ? Position.Bottom
+                    : Position.Top,
+
+            data: {
+                label: getNodeLabel(node),
+            },
+
+            style: {
+                backgroundColor: getNodeColor(node),
+                color: "#ffffff",
+                border: "2px solid rgba(255, 255, 255, 0.35)",
+                borderRadius: "10px",
+                padding: "8px",
+                width: 120,
+                minHeight: 46,
+                fontSize: "10px",
+                fontWeight: 600,
+                textAlign: "center",
+                whiteSpace: "pre-line",
+            },
+        }
+    })
 }
 
 function buildFlowEdges(topologyEdges: TopologyEdge[]): Edge[] {
