@@ -47,6 +47,8 @@ export interface SnapshotResponse {
     num_componentes_reserva_en_uso: number
     num_salas_degradadas: number
     num_salas_sin_servicio: number
+    
+    components?: ComponentResponse[]
 }
 
 export interface ComponentResponse {

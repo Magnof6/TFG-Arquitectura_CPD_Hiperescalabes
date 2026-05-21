@@ -8,23 +8,28 @@ import {
 import type {
     ScenarioResponse,
     SimulationResultResponse,
-
 } from "../../types/api"
-import SimulationRunPanel from "../../components/ui/SimulationRunPanel" //Panel para seleccionar escenario y ejecutar simulación
-import KpiPanel from "../../components/ui/KpiPanel" //KPIs
-import EventsTable from "../../components/tables/EventsTable" //Eventos Cronológicos
-import SnapshotsTable from "../../components/tables/SnapshotTable" //Snapshots
-import ComponentsAccordion from "../../components/tables/ComponentsAccordion" //Componentes (con acordeón para cada tipo)
-import ExportMenu from "../../components/ui/ExportMenu" //Menú para exportar resultados (JSON/CSV)
+
+import SimulationRunPanel from "../../components/ui/SimulationRunPanel"
+import KpiPanel from "../../components/ui/KpiPanel"
+import EventsTable from "../../components/tables/EventsTable"
+import SnapshotsTable from "../../components/tables/SnapshotTable"
+import ComponentsAccordion from "../../components/tables/ComponentsAccordion"
+import ExportMenu from "../../components/ui/ExportMenu"
 import TopologyGraph from "../../components/charts/TopologyGraph"
 
 export default function ScenariosPage() {
     const [scenarios, setScenarios] = useState<ScenarioResponse[]>([])
     const [selectedScenarioId, setSelectedScenarioId] = useState("")
-    const [simulationResult, setSimulationResult] = useState<SimulationResultResponse | null>(null)
+    const [simulationResult, setSimulationResult] =
+        useState<SimulationResultResponse | null>(null)
+
+    const [selectedSnapshotIndex, setSelectedSnapshotIndex] =
+        useState<number | null>(null)
 
     const [loadingScenarios, setLoadingScenarios] = useState(true)
     const [runningSimulation, setRunningSimulation] = useState(false)
+
     useEffect(() => {
         loadScenarios()
     }, [])
@@ -49,14 +54,26 @@ export default function ScenariosPage() {
 
         try {
             setRunningSimulation(true)
+
             const result = await runSimulation(selectedScenarioId)
             setSimulationResult(result)
+
+            setSelectedSnapshotIndex(
+                result.snapshots.length > 0
+                    ? result.snapshots.length - 1
+                    : null
+            )
         } catch (error) {
             console.error(error)
         } finally {
             setRunningSimulation(false)
         }
     }
+
+    const selectedSnapshot =
+        simulationResult && selectedSnapshotIndex !== null
+            ? simulationResult.snapshots[selectedSnapshotIndex]
+            : null
 
     if (loadingScenarios) {
         return <div>Cargando escenarios...</div>
@@ -76,12 +93,50 @@ export default function ScenariosPage() {
 
             {simulationResult && (
                 <>
-                    <ExportMenu result={simulationResult} /> {/* Menú para exportar resultados */}
-                    <KpiPanel kpis={simulationResult.kpis} /> {/* KPIs */}
-                    <EventsTable events={simulationResult.events} />  {/* eventos Cronológicos */}
-                    <SnapshotsTable snapshots={simulationResult.snapshots} /> {/* Snapshots */}
-                    <TopologyGraph topology={simulationResult.topology} /> {/* Gráfico de topología */}
-                    <ComponentsAccordion components={simulationResult.components} /> {/* Componentes (con acordeón para cada tipo) */}
+                    <ExportMenu result={simulationResult} />
+
+                    <KpiPanel kpis={simulationResult.kpis} />
+
+                    <EventsTable events={simulationResult.events} />
+
+                    <SnapshotsTable snapshots={simulationResult.snapshots} />
+
+                    {simulationResult.snapshots.length > 0 && (
+                        <div className="form-group">
+                            <label>Snapshot de topología</label>
+
+                            <input
+                                type="range"
+                                min={0}
+                                max={simulationResult.snapshots.length - 1}
+                                value={
+                                    selectedSnapshotIndex ??
+                                    simulationResult.snapshots.length - 1
+                                }
+                                onChange={(event) =>
+                                    setSelectedSnapshotIndex(
+                                        Number(event.target.value)
+                                    )
+                                }
+                            />
+
+                            {selectedSnapshot && (
+                                <p>
+                                    t = {selectedSnapshot.tiempo_s}s · Estado:{" "}
+                                    {selectedSnapshot.estado_global}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    <TopologyGraph
+                        topology={simulationResult.topology}
+                        snapshot={selectedSnapshot}
+                    />
+
+                    <ComponentsAccordion
+                        components={simulationResult.components}
+                    />
                 </>
             )}
         </div>

@@ -26,11 +26,28 @@ type TopologyEdge = {
     target: string
 }
 
+type SnapshotComponent = {
+    id: string
+    nombre?: string
+    label?: string
+    tipo?: string
+    type?: string
+    estado?: string
+    status?: string
+}
+
+type SnapshotTopology = {
+    tiempo_s: number
+    estado_global: string
+    components?: SnapshotComponent[]
+}
+
 type TopologyProps = {
     topology: {
         nodes: TopologyNode[]
         edges: TopologyEdge[]
     }
+    snapshot?: SnapshotTopology | null
 }
 
 function normalize(value?: string): string {
@@ -217,6 +234,47 @@ function getPosition(node: TopologyNode): { x: number; y: number } {
     return { x: centerX + 700, y: 0 }
 }
 
+function mergeSnapshotState(
+    topologyNodes: TopologyNode[],
+    snapshot?: SnapshotTopology | null
+): TopologyNode[] {
+    if (!snapshot?.components) {
+        return topologyNodes
+    }
+
+    const snapshotById = new Map(
+        snapshot.components.map((component) => [
+            component.id,
+            component,
+        ])
+    )
+
+    return topologyNodes.map((node) => {
+        const snapshotComponent = snapshotById.get(node.id)
+
+        if (!snapshotComponent) {
+            return node
+        }
+
+        return {
+            ...node,
+            label:
+                node.label ||
+                snapshotComponent.label ||
+                snapshotComponent.nombre ||
+                node.id,
+            type:
+                node.type ||
+                snapshotComponent.type ||
+                snapshotComponent.tipo,
+            status:
+                snapshotComponent.status ||
+                snapshotComponent.estado ||
+                node.status,
+        }
+    })
+}
+
 function buildFlowNodes(topologyNodes: TopologyNode[]): Node[] {
     return topologyNodes.map((node) => {
         const isGenerator = node.id.startsWith("gen_dc1_")
@@ -275,8 +333,12 @@ function buildFlowEdges(topologyEdges: TopologyEdge[]): Edge[] {
     }))
 }
 
-export default function TopologyGraph({ topology }: TopologyProps) {
-    const nodes = buildFlowNodes(topology.nodes)
+export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
+    const topologyNodesForSnapshot = mergeSnapshotState(
+        topology.nodes,
+        snapshot
+    )
+    const nodes = buildFlowNodes(topologyNodesForSnapshot)
     const edges = buildFlowEdges(topology.edges)
 
     return (
