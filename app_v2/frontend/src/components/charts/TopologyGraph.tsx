@@ -53,6 +53,12 @@ function getStatusLabel(node: TopologyNode): string {
         if (status === "sin_alimentacion") return "Sin alimentación"
     }
 
+    if (node.id.startsWith("ups_") && node.id.endsWith("_b")) {
+        if (status === "activo" || status === "operativo") {
+            return "Respaldo disponible"
+        }
+    }
+
     switch (status) {
         case "activo":
         case "operativo":
@@ -83,6 +89,13 @@ function getNodeColor(node: TopologyNode): string {
     const status = normalize(node.status)
 
     if (isReserveBlock(node)) {
+        return "#3b82f6"
+    }
+    if (
+        node.id.startsWith("ups_") &&
+        node.id.endsWith("_b") &&
+        (status === "activo" || status === "operativo")
+    ) {
         return "#3b82f6"
     }
 
