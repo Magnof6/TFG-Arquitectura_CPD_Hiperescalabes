@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from app.schemas.component_schema import ComponentResponse
 
 
 class SnapshotResponse(BaseModel):
@@ -13,3 +14,4 @@ class SnapshotResponse(BaseModel):
     num_componentes_reserva_en_uso: int
     num_salas_degradadas: int
     num_salas_sin_servicio: int
+    components: list[ComponentResponse] = []
