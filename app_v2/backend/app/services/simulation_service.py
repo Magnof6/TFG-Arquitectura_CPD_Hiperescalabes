@@ -82,6 +82,10 @@ def run_simulation(scenario_id: str):
             num_componentes_reserva_en_uso=s.num_componentes_reserva_en_uso,
             num_salas_degradadas=s.num_salas_degradadas,
             num_salas_sin_servicio=s.num_salas_sin_servicio,
+            components=[
+                ComponentResponse(**component)
+                for component in s.components
+            ],
         )
         for s in resultados["snapshots"]
     ]

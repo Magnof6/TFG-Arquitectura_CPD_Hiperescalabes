@@ -230,6 +230,22 @@ class MotorSimulacion:
             num_componentes_reserva_en_uso=self._num_reservas_en_uso(),
             num_salas_degradadas=self._num_salas_degradadas(),
             num_salas_sin_servicio=self._num_salas_sin_servicio(),
+            components=[
+                {
+                    "id": getattr(component, "id", ""),
+                    "nombre": getattr(component, "nombre", ""),
+                    "tipo": getattr(component, "tipo", component.__class__.__name__),
+                    "estado": getattr(component, "estado", ""),
+                    "criticidad": getattr(component, "criticidad", None),
+                    "es_reserva": getattr(component, "es_reserva", None),
+                    "capacidad_kw": getattr(component, "capacidad_kw", None),
+                    "en_bateria": getattr(component, "en_bateria", None),
+                    "alimentando_zona": getattr(component, "alimentando_zona", None),
+                    "bateria_agotada": getattr(component, "bateria_agotada", None),
+                    "specific": {},
+                }
+                for component in self.estado.componentes.values()
+            ],
         )
         self.estado.snapshots.append(snapshot)
 

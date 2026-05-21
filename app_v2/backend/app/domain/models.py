@@ -339,6 +339,7 @@ class SnapshotSistema:
     num_componentes_reserva_en_uso: int
     num_salas_degradadas: int
     num_salas_sin_servicio: int
+    components: list[dict]
 
 @dataclass
 class RegistroEvento:
