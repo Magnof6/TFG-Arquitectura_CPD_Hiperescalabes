@@ -147,6 +147,8 @@ function getPosition(node: TopologyNode): { x: number; y: number } {
     const text = normalize(`${node.id} ${node.label} ${node.type}`)
 
     const centerX = 900
+    const blockSpacing = 260
+    const moduleSpacing = 1900
 
     if (id === "red") return { x: centerX, y: 0 }
     if (id === "emf_1") return { x: centerX, y: 110 }
@@ -173,22 +175,27 @@ function getPosition(node: TopologyNode): { x: number; y: number } {
         const moduleNumber = getModuleNumber(node)
 
         return {
-            x: 465 + (moduleNumber - 1) * 980,
+            x: centerX + (moduleNumber - 2) * moduleSpacing,
             y: 900,
         }
     }
 
     const moduleNumber = getModuleNumber(node)
     const blockNumber = getBlockNumber(node)
+    const moduleCenterOffset = 3 * blockSpacing
 
-    const moduleStartX = 340 + (moduleNumber - 1) * 1120
-    const blockX = moduleStartX + (blockNumber - 1) * 155
+    const moduleStartX =
+        centerX +
+        (moduleNumber - 2) * moduleSpacing -
+        moduleCenterOffset
+
+    const blockX = moduleStartX + (blockNumber - 1) * blockSpacing
     const blockTopY = 1050
 
     if (id.startsWith("rmu_m")) return { x: blockX, y: blockTopY }
     if (id.startsWith("trafo_m")) return { x: blockX, y: blockTopY + 120 }
-    if (id.includes("_a") && id.startsWith("ups_m")) return { x: blockX - 42, y: blockTopY + 250 }
-    if (id.includes("_b") && id.startsWith("ups_m")) return { x: blockX + 42, y: blockTopY + 250 }
+    if (id.includes("_a") && id.startsWith("ups_m")) return { x: blockX - 70, y: blockTopY + 250 }
+    if (id.includes("_b") && id.startsWith("ups_m")) return { x: blockX + 70, y: blockTopY + 250 }
     if (id.startsWith("sts_m")) return { x: blockX, y: blockTopY + 390 }
     if (id.startsWith("bus_m")) return { x: blockX, y: blockTopY + 620 }
     if (id.startsWith("sala_m")) return { x: blockX, y: blockTopY + 740 }
