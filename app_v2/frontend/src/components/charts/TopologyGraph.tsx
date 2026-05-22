@@ -4,8 +4,9 @@ import {
     MarkerType,
     MiniMap,
     ReactFlow,
-    Position
+    Position,
 } from "@xyflow/react"
+import { useMemo, useState } from "react"
 
 import type { Edge, Node } from "@xyflow/react"
 
@@ -382,11 +383,55 @@ function buildFlowNodes(topologyNodes: TopologyNode[]): Node[] {
     })
 }
 
-function buildFlowEdges(
+function getConnectedActiveEdges(
+    startNodeId: string,
     topologyEdges: TopologyEdge[],
     activeEdges: Set<string>
+): Set<string> {
+    const highlighted = new Set<string>()
+
+    const outgoing = new Map<string, TopologyEdge[]>()
+    const incoming = new Map<string, TopologyEdge[]>()
+
+    for (const edge of topologyEdges) {
+        if (!activeEdges.has(edge.id)) continue
+
+        if (!outgoing.has(edge.source)) outgoing.set(edge.source, [])
+        outgoing.get(edge.source)!.push(edge)
+
+        if (!incoming.has(edge.target)) incoming.set(edge.target, [])
+        incoming.get(edge.target)!.push(edge)
+    }
+
+    const visitUpstream = (nodeId: string) => {
+        for (const edge of incoming.get(nodeId) ?? []) {
+            if (highlighted.has(edge.id)) continue
+            highlighted.add(edge.id)
+            visitUpstream(edge.source)
+        }
+    }
+
+    const visitDownstream = (nodeId: string) => {
+        for (const edge of outgoing.get(nodeId) ?? []) {
+            if (highlighted.has(edge.id)) continue
+            highlighted.add(edge.id)
+            visitDownstream(edge.target)
+        }
+    }
+
+    visitUpstream(startNodeId)
+    visitDownstream(startNodeId)
+
+    return highlighted
+}
+
+function buildFlowEdges(
+    topologyEdges: TopologyEdge[],
+    activeEdges: Set<string>,
+    highlightedEdges: Set<string>
 ): Edge[] {
     return topologyEdges.map((edge) => {
+        const isHighlighted = highlightedEdges.has(edge.id)
         const isActiveEdge = activeEdges.has(edge.id)
 
         return {
@@ -396,12 +441,21 @@ function buildFlowEdges(
             type: "smoothstep",
             markerEnd: {
                 type: MarkerType.ArrowClosed,
-                color: isActiveEdge ? "#22c55e" : "#9ca3af",
+                color: isHighlighted
+                    ? "#facc15"
+                    : isActiveEdge
+                        ? "#22c55e"
+                        : "#9ca3af",
             },
             style: {
-                stroke: isActiveEdge ? "#22c55e" : "#9ca3af",
-                strokeWidth: isActiveEdge ? 3 : 1.4,
+                stroke: isHighlighted
+                    ? "#facc15"
+                    : isActiveEdge
+                        ? "#22c55e"
+                        : "#9ca3af",
+                strokeWidth: isHighlighted ? 3.5 : isActiveEdge ? 3 : 1.4,
             },
+            zIndex: isActiveEdge ? 10 : 1,
         }
     })
 }
@@ -411,9 +465,34 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
         topology.nodes,
         snapshot
     )
+    const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null)
+
     const nodes = buildFlowNodes(topologyNodesForSnapshot)
-    const activeEdges = new Set(snapshot?.active_edges || [])
-    const edges = buildFlowEdges(topology.edges, activeEdges)
+
+    const activeEdges = useMemo(
+        () => new Set(snapshot?.active_edges ?? []),
+        [snapshot?.active_edges]
+    )
+
+    const highlightedEdges = useMemo(() => {
+        if (!hoveredEdgeId) {
+            return new Set<string>()
+        }
+
+        const edge = topology.edges.find((e) => e.id === hoveredEdgeId)
+        if (!edge) {
+            return new Set<string>()
+        }
+
+        return getConnectedActiveEdges(
+            edge.target,
+            topology.edges,
+            activeEdges
+        )
+    }, [hoveredEdgeId, topology.edges, activeEdges])
+
+    const edges = buildFlowEdges(topology.edges, activeEdges, highlightedEdges)
+
     return (
         <SectionCard title="Topología eléctrica">
             <div className="topology-wrapper">
@@ -433,6 +512,12 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
                         fitViewOptions={{
                             padding: 0.15,
                             maxZoom: 0.85,
+                        }}
+                        onEdgeMouseEnter={(_, edge) => {
+                            setHoveredEdgeId(edge.id)
+                        }}
+                        onEdgeMouseLeave={() => {
+                            setHoveredEdgeId(null)
                         }}
                     >
                         <Background />
