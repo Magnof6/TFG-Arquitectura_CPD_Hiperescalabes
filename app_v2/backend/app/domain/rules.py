@@ -283,12 +283,18 @@ class MotorReglas:
         sala.potencia_actual_kw = potencia_servida
 
         estados = {z.estado for z in zonas}
-        if estados == {"alimentado"}:
+        # Una sala solo queda sin alimentación cuando TODAS sus zonas lo están.
+        # Si hay mezcla de estados (incluyendo alguna zona degradada o sin alimentación),
+        # la sala debe considerarse degradada.
+        estados_sin_alimentacion = {"sin_alimentacion", "sin_alimentación"}
+        estados_alimentados = {"alimentado", "alimentada"}
+
+        if estados and estados.issubset(estados_alimentados):
             sala.estado = "alimentada"
-        elif "alimentado" in estados or "degradado" in estados:
-            sala.estado = "degradada"
-        else:
+        elif estados and estados.issubset(estados_sin_alimentacion):
             sala.estado = "sin_alimentacion"
+        else:
+            sala.estado = "degradada"
 
     def reevaluar_todas_las_salas(self, estado) -> None:
         for sala in estado.salas_it.values():

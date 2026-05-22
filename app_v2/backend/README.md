@@ -54,7 +54,6 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 o simplemente:
 
 uvicorn app.main:app --reload
-
 Uvicorn indicará en qué puerto está corriendo el servidor.
 
 

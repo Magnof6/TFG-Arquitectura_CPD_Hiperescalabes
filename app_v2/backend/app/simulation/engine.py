@@ -244,7 +244,11 @@ class MotorSimulacion:
                     "bateria_agotada": getattr(component, "bateria_agotada", None),
                     "specific": {},
                 }
-                for component in self.estado.componentes.values()
+                for component in (
+                    list(self.estado.componentes.values())
+                    + list(self.estado.salas_it.values())
+                    + list(self.estado.zonas_it.values())
+                )
             ],
         )
         self.estado.snapshots.append(snapshot)
@@ -290,6 +294,14 @@ class MotorSimulacion:
                     getattr(zona, "alimentacion_actual", None),
                 )
                 for zona in self.estado.zonas_it.values()
+            )),
+            tuple(sorted(
+                (
+                    sala.id,
+                    sala.estado,
+                    getattr(sala, "potencia_actual_kw", None),
+                )
+                for sala in self.estado.salas_it.values()
             )),
         )
 
