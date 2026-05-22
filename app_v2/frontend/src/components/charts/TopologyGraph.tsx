@@ -22,6 +22,9 @@ type TopologyNode = {
     alimentando_zona?: boolean | null
     en_bateria?: boolean | null
     bateria_agotada?: boolean | null
+    fuente_actual?: string | null
+    fuente_preferida?: string | null
+    fuente_respaldo?: string | null
 }
 
 type TopologyEdge = {
@@ -42,7 +45,11 @@ type SnapshotComponent = {
     alimentando_zona?: boolean | null
     en_bateria?: boolean | null
     bateria_agotada?: boolean | null
+    fuente_actual?: string | null
+    fuente_preferida?: string | null
+    fuente_respaldo?: string | null
 }
+
 type SnapshotTopology = {
     tiempo_s: number
     estado_global: string
@@ -305,6 +312,14 @@ function mergeSnapshotState(
 
             bateria_agotada:
                 snapshotComponent.bateria_agotada ?? node.bateria_agotada,
+            fuente_actual:
+                snapshotComponent.fuente_actual ?? node.fuente_actual,
+
+            fuente_preferida:
+                snapshotComponent.fuente_preferida ?? node.fuente_preferida,
+
+            fuente_respaldo:
+                snapshotComponent.fuente_respaldo ?? node.fuente_respaldo,
         }
     })
 }

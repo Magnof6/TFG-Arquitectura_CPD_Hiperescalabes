@@ -259,6 +259,14 @@ class ProcesadorEventos:
             destino.alimentando_zona = True
             destino.en_bateria = True
             destino.tiempo_inicio_bateria_s = evento.tiempo_s
+
+            for comp in estado.componentes.values(): #Actualizar fuente activa en STS que tengan esta fuente como preferida o respaldo
+                if getattr(comp, "tipo", "").lower() == "sts":
+                    if (
+                        getattr(comp, "fuente_preferida", None) == destino.id
+                        or getattr(comp, "fuente_respaldo", None) == destino.id
+                    ):
+                        comp.fuente_actual = destino.id
         
         elif destino is not None and destino.tipo.lower() == "generador":
             zona = estado.zonas_it.get(evento.objetivo_id)

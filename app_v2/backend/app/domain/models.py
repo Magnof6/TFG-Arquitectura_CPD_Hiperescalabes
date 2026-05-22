@@ -136,6 +136,7 @@ class STS(ObjetoElectrico): #Static Transfer Switch, es un dispositivo que permi
     tiempo_transferencia_ms: float
     fuente_preferida: str
     fuente_respaldo: str
+    fuente_actual: Optional[str] = None
 
 @dataclass
 class CuadroElectrico(ObjetoElectrico):

@@ -14,4 +14,7 @@ class ComponentResponse(BaseModel):
     en_bateria: Optional[bool] = None
     alimentando_zona: Optional[bool] = None
     bateria_agotada: Optional[bool] = None
+    fuente_actual: Optional[str] = None
+    fuente_preferida: Optional[str] = None
+    fuente_respaldo: Optional[str] = None
     specific: dict[str, Any] = {}  # Para campos específicos de cada tipo de componente

@@ -62,6 +62,9 @@ export interface ComponentResponse {
     en_bateria: boolean | null
     alimentando_zona: boolean | null
     bateria_agotada: boolean | null
+    fuente_actual: string | null
+    fuente_preferida: string | null
+    fuente_respaldo: string | null
     specific: Record<string, unknown>
 }
 
