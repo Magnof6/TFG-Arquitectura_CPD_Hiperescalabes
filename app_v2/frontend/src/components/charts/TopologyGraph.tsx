@@ -365,21 +365,36 @@ function buildFlowNodes(topologyNodes: TopologyNode[]): Node[] {
     })
 }
 
-function buildFlowEdges(topologyEdges: TopologyEdge[]): Edge[] {
-    return topologyEdges.map((edge) => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        type: "smoothstep",
-        markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: "#9ca3af",
-        },
-        style: {
-            stroke: "#9ca3af",
-            strokeWidth: 1.4,
-        },
-    }))
+function buildFlowEdges(
+    topologyEdges: TopologyEdge[],
+    topologyNodes: TopologyNode[]
+): Edge[] {
+    const nodeById = new Map(
+        topologyNodes.map((node) => [node.id, node])
+    )
+
+    return topologyEdges.map((edge) => {
+        const targetNode = nodeById.get(edge.target)
+
+        const isActiveStsInput =
+            targetNode?.type?.toLowerCase() === "sts" &&
+            targetNode.fuente_actual === edge.source
+
+        return {
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            type: "smoothstep",
+            markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: isActiveStsInput ? "#22c55e" : "#9ca3af",
+            },
+            style: {
+                stroke: isActiveStsInput ? "#22c55e" : "#9ca3af",
+                strokeWidth: isActiveStsInput ? 3 : 1.4,
+            },
+        }
+    })
 }
 
 export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
@@ -388,7 +403,7 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
         snapshot
     )
     const nodes = buildFlowNodes(topologyNodesForSnapshot)
-    const edges = buildFlowEdges(topology.edges)
+    const edges = buildFlowEdges(topology.edges, topologyNodesForSnapshot)
 
     return (
         <SectionCard title="Topología eléctrica">

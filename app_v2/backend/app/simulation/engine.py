@@ -242,6 +242,9 @@ class MotorSimulacion:
                     "en_bateria": getattr(component, "en_bateria", None),
                     "alimentando_zona": getattr(component, "alimentando_zona", None),
                     "bateria_agotada": getattr(component, "bateria_agotada", None),
+                    "fuente_actual": getattr(component, "fuente_actual", None),
+                    "fuente_preferida": getattr(component, "fuente_preferida", None),
+                    "fuente_respaldo": getattr(component, "fuente_respaldo", None),
                     "specific": {},
                 }
                 for component in (
