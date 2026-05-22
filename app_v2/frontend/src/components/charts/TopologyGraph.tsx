@@ -63,6 +63,9 @@ function normalize(value?: string): string {
 
 function getStatusLabel(node: TopologyNode): string {
     const status = normalize(node.status)
+    if (isReserveBlock(node) && (node.id.startsWith("sala_") || node.id.startsWith("zona_"))) {
+        return "Reserva disponible"
+    }
     if (isReserveBlock(node)) return "Reserva"
 
     if (node.id.startsWith("sala_")) {
@@ -111,6 +114,10 @@ function isReserveBlock(node: TopologyNode): boolean {
 
 function getNodeColor(node: TopologyNode): string {
     const status = normalize(node.status)
+
+    if (isReserveBlock(node) && (node.id.startsWith("sala_") || node.id.startsWith("zona_"))) {
+        return "#3b82f6"
+    }
 
     if (status === "fallado" || status === "fallo" || status === "sin_alimentacion") {
         return "#ef4444"
