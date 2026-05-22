@@ -18,6 +18,10 @@ type TopologyNode = {
     label: string
     type?: string
     status?: string
+    es_reserva?: boolean | null
+    alimentando_zona?: boolean | null
+    en_bateria?: boolean | null
+    bateria_agotada?: boolean | null
 }
 
 type TopologyEdge = {
@@ -34,8 +38,11 @@ type SnapshotComponent = {
     type?: string
     estado?: string
     status?: string
+    es_reserva?: boolean | null
+    alimentando_zona?: boolean | null
+    en_bateria?: boolean | null
+    bateria_agotada?: boolean | null
 }
-
 type SnapshotTopology = {
     tiempo_s: number
     estado_global: string
@@ -105,9 +112,22 @@ function isReserveBlock(node: TopologyNode): boolean {
 function getNodeColor(node: TopologyNode): string {
     const status = normalize(node.status)
 
-    if (isReserveBlock(node)) {
+    if (status === "fallado" || status === "fallo" || status === "sin_alimentacion") {
+        return "#ef4444"
+    }
+
+    if (node.bateria_agotada) {
+        return "#ef4444"
+    }
+
+    if (node.alimentando_zona) {
+        return "#22c55e"
+    }
+
+    if (node.es_reserva || isReserveBlock(node)) {
         return "#3b82f6"
     }
+
     if (
         node.id.startsWith("ups_") &&
         node.id.endsWith("_b") &&
@@ -127,10 +147,6 @@ function getNodeColor(node: TopologyNode): string {
 
     if (status === "degradado" || status === "degradada") {
         return "#f59e0b"
-    }
-
-    if (status === "fallado" || status === "fallo" || status === "sin_alimentacion") {
-        return "#ef4444"
     }
 
     if (status === "reserva" || status === "reserva_en_uso") {
@@ -271,6 +287,17 @@ function mergeSnapshotState(
                 snapshotComponent.status ||
                 snapshotComponent.estado ||
                 node.status,
+            es_reserva:
+                snapshotComponent.es_reserva ?? node.es_reserva,
+
+            alimentando_zona:
+                snapshotComponent.alimentando_zona ?? node.alimentando_zona,
+
+            en_bateria:
+                snapshotComponent.en_bateria ?? node.en_bateria,
+
+            bateria_agotada:
+                snapshotComponent.bateria_agotada ?? node.bateria_agotada,
         }
     })
 }
