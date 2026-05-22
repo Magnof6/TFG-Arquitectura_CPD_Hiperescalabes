@@ -205,6 +205,57 @@ class MotorSimulacion:
     # 3. RECÁLCULO DEL SISTEMA
     # -----------------------------------------------------------------
 
+    def _calcular_active_edges(self) -> list[str]:
+        active_edges = set()
+        powered_nodes = set()
+
+        # 1. Rutas reales hacia zonas alimentadas
+        for zona in self.estado.zonas_it.values():
+            demanda_kw = getattr(zona, "demanda_kw", 0.0)
+
+            if demanda_kw <= 0:
+                continue
+
+            rutas = self.motor_reglas.buscar_rutas_validas_a_destino(
+                destino_id=zona.id,
+                demanda_kw=demanda_kw,
+                estado=self.estado,
+            )
+
+            if not rutas:
+                continue
+
+            ruta = rutas[0]
+
+            for nodo_id in ruta:
+                powered_nodes.add(nodo_id)
+
+            for i in range(len(ruta) - 1):
+                active_edges.add(f"{ruta[i]}__{ruta[i + 1]}")
+
+        # 2. Trafos 400/66 solo si SET CPD está alimentada
+        if "set_cpd_400_66" in powered_nodes:
+            for trafo_id in [
+                "trafo_400_66_1",
+                "trafo_400_66_2",
+                "trafo_400_66_3",
+            ]:
+                trafo = self.estado.componentes.get(trafo_id)
+
+                if trafo is not None and getattr(trafo, "estado", None) == "activo":
+                    active_edges.add(f"set_cpd_400_66__{trafo_id}")
+                    active_edges.add(f"{trafo_id}__set_dc1_66_11")
+                    powered_nodes.add(trafo_id)
+
+        # 3. Generadores solo si están activos
+        for comp in self.estado.componentes.values():
+            if getattr(comp, "tipo", "").lower() == "generador":
+                if getattr(comp, "estado", None) == "activo":
+                    active_edges.add(f"{comp.id}__barra_11kv_dc1")
+                    powered_nodes.add(comp.id)
+
+        return sorted(active_edges)
+
     def recalcular_estado_completo(self) -> None:
         """
         Recalcula el estado lógico completo del sistema tras un evento.
@@ -253,6 +304,8 @@ class MotorSimulacion:
                     + list(self.estado.zonas_it.values())
                 )
             ],
+            active_edges=self._calcular_active_edges(),
+
         )
         self.estado.snapshots.append(snapshot)
 

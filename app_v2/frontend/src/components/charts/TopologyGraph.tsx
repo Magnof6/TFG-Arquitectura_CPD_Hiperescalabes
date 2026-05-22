@@ -54,6 +54,7 @@ type SnapshotTopology = {
     tiempo_s: number
     estado_global: string
     components?: SnapshotComponent[]
+    active_edges?: string[]
 }
 
 type TopologyProps = {
@@ -133,7 +134,23 @@ function getNodeColor(node: TopologyNode): string {
     if (node.bateria_agotada) {
         return "#ef4444"
     }
+    if (node.id.startsWith("gen_dc1_")) {
+        if (status === "fallado" || status === "fallo") {
+            return "#ef4444"
+        }
 
+        if (status === "desconectado") {
+            return "#6b7280"
+        }
+
+        if (status === "activo" || status === "operativo") {
+            return "#22c55e"
+        }
+
+        if (status === "reserva") {
+            return "#3b82f6"
+        }
+    }
     if (node.alimentando_zona) {
         return "#22c55e"
     }
@@ -367,18 +384,10 @@ function buildFlowNodes(topologyNodes: TopologyNode[]): Node[] {
 
 function buildFlowEdges(
     topologyEdges: TopologyEdge[],
-    topologyNodes: TopologyNode[]
+    activeEdges: Set<string>
 ): Edge[] {
-    const nodeById = new Map(
-        topologyNodes.map((node) => [node.id, node])
-    )
-
     return topologyEdges.map((edge) => {
-        const targetNode = nodeById.get(edge.target)
-
-        const isActiveStsInput =
-            targetNode?.type?.toLowerCase() === "sts" &&
-            targetNode.fuente_actual === edge.source
+        const isActiveEdge = activeEdges.has(edge.id)
 
         return {
             id: edge.id,
@@ -387,11 +396,11 @@ function buildFlowEdges(
             type: "smoothstep",
             markerEnd: {
                 type: MarkerType.ArrowClosed,
-                color: isActiveStsInput ? "#22c55e" : "#9ca3af",
+                color: isActiveEdge ? "#22c55e" : "#9ca3af",
             },
             style: {
-                stroke: isActiveStsInput ? "#22c55e" : "#9ca3af",
-                strokeWidth: isActiveStsInput ? 3 : 1.4,
+                stroke: isActiveEdge ? "#22c55e" : "#9ca3af",
+                strokeWidth: isActiveEdge ? 3 : 1.4,
             },
         }
     })
@@ -403,8 +412,8 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
         snapshot
     )
     const nodes = buildFlowNodes(topologyNodesForSnapshot)
-    const edges = buildFlowEdges(topology.edges, topologyNodesForSnapshot)
-
+    const activeEdges = new Set(snapshot?.active_edges || [])
+    const edges = buildFlowEdges(topology.edges, activeEdges)
     return (
         <SectionCard title="Topología eléctrica">
             <div className="topology-wrapper">

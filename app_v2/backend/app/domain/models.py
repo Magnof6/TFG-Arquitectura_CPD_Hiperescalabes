@@ -341,6 +341,8 @@ class SnapshotSistema:
     num_salas_degradadas: int
     num_salas_sin_servicio: int
     components: list[dict]
+    active_edges: list[str] = field(default_factory=list)
+
 
 @dataclass
 class RegistroEvento:

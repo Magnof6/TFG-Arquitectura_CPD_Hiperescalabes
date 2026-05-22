@@ -14,4 +14,5 @@ class SnapshotResponse(BaseModel):
     num_componentes_reserva_en_uso: int
     num_salas_degradadas: int
     num_salas_sin_servicio: int
+    active_edges: list[str] = []
     components: list[ComponentResponse] = []
