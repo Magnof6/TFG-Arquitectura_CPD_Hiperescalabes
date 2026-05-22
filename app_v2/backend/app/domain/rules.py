@@ -267,27 +267,41 @@ class MotorReglas:
             zona.estado = "alimentado"
 
     def reevaluar_sala(self, sala, estado) -> None:
-        zonas = [
-            z for z in estado.zonas_it.values()
-            if z.sala_it_id == sala.id
-        ] if hasattr(estado, "zonas_it") else []
-
-        if not zonas:
+        if not hasattr(estado, "zonas_it"):
             sala.estado = "sin_alimentacion"
             sala.potencia_actual_kw = 0.0
             return
 
+        # Extraer módulo desde el id de sala: sala_m3_5 -> modulo 3
+        partes = sala.id.replace("sala_m", "").split("_")
+        if len(partes) != 2:
+            sala.estado = "sin_alimentacion"
+            sala.potencia_actual_kw = 0.0
+            return
+
+        modulo = partes[0]
+
+        zonas_modulo = [
+            z for z in estado.zonas_it.values()
+            if z.id.startswith(f"zona_m{modulo}_") and not z.id.endswith("7")
+        ]
+
+        if not zonas_modulo:
+            sala.estado = "sin_alimentacion"
+            sala.potencia_actual_kw = 0.0
+            return
+
+        estados_sin_alimentacion = {"sin_alimentacion", "sin_alimentación"}
+        estados_alimentados = {"alimentado", "alimentada"}
+
         potencia_servida = sum(
-            z.demanda_kw for z in zonas if z.estado in {"alimentado", "degradado"}
+            z.demanda_kw
+            for z in zonas_modulo
+            if z.estado in estados_alimentados or z.estado == "degradado"
         )
         sala.potencia_actual_kw = potencia_servida
 
-        estados = {z.estado for z in zonas}
-        # Una sala solo queda sin alimentación cuando TODAS sus zonas lo están.
-        # Si hay mezcla de estados (incluyendo alguna zona degradada o sin alimentación),
-        # la sala debe considerarse degradada.
-        estados_sin_alimentacion = {"sin_alimentacion", "sin_alimentación"}
-        estados_alimentados = {"alimentado", "alimentada"}
+        estados = {z.estado for z in zonas_modulo}
 
         if estados and estados.issubset(estados_alimentados):
             sala.estado = "alimentada"
