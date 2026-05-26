@@ -20,3 +20,21 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
 }
+
+.main-nav {
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 24px;
+}
+
+.main-nav a {
+    text-decoration: none;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.main-nav a:hover {
+    text-decoration: underline;
+}
