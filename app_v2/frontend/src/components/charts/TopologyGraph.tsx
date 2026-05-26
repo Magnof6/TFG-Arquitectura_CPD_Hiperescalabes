@@ -6,7 +6,7 @@ import {
     ReactFlow,
     Position,
 } from "@xyflow/react"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useRef } from "react"
 
 import type { Edge, Node } from "@xyflow/react"
 
@@ -459,6 +459,147 @@ function buildFlowEdges(
         }
     })
 }
+function exportGraphAsSvg(nodes: Node[], edges: Edge[], snapshotTime: number) {
+    const padding = 300
+    const NODE_WIDTH = 120
+    const NODE_HEIGHT = 46
+    const minX = Math.min(...nodes.map((n) => n.position.x)) - padding
+    const minY = Math.min(...nodes.map((n) => n.position.y)) - padding
+    const maxX = Math.max(...nodes.map((n) => n.position.x + NODE_WIDTH)) + padding
+    const maxY = Math.max(...nodes.map((n) => n.position.y + NODE_HEIGHT)) + padding
+
+    const width = maxX - minX
+    const height = maxY - minY
+
+    const nodeById = new Map(nodes.map((node) => [node.id, node]))
+
+    const svgEdges = edges.map((edge) => {
+        const source = nodeById.get(edge.source)
+        const target = nodeById.get(edge.target)
+
+        if (!source || !target) return ""
+
+        const x1 = source.position.x + 60 - minX
+        const y1 = source.position.y + 46 - minY
+        const x2 = target.position.x + 60 - minX
+        const y2 = target.position.y - minY
+
+        const stroke =
+            typeof edge.style?.stroke === "string"
+                ? edge.style.stroke
+                : "#9ca3af"
+
+        const strokeWidth =
+            typeof edge.style?.strokeWidth === "number"
+                ? edge.style.strokeWidth
+                : 1.4
+
+        return `
+            <path
+                d="M ${x1} ${y1} L ${x1} ${(y1 + y2) / 2} L ${x2} ${(y1 + y2) / 2} L ${x2} ${y2}"
+                fill="none"
+                stroke="${stroke}"
+                stroke-width="${strokeWidth}"
+                marker-end="url(#arrow)"
+            />
+        `
+    }).join("")
+
+    const svgNodes = nodes.map((node) => {
+        const label = String(node.data?.label ?? node.id)
+        const lines = label.split("\n")
+
+        const background =
+            typeof node.style?.backgroundColor === "string"
+                ? node.style.backgroundColor
+                : "#6b7280"
+
+        const x = node.position.x - minX
+        const y = node.position.y - minY
+
+        const NODE_WIDTH = 120
+        const NODE_HEIGHT = 46
+
+        return `
+        <g>
+
+            <clipPath id="clip-${node.id}">
+                <rect
+                    x="${x}"
+                    y="${y}"
+                    width="${NODE_WIDTH}"
+                    height="${NODE_HEIGHT}"
+                    rx="10"
+                />
+            </clipPath>
+
+            <rect
+                x="${x}"
+                y="${y}"
+                width="${NODE_WIDTH}"
+                height="${NODE_HEIGHT}"
+                rx="10"
+                fill="${background}"
+                stroke="rgba(255,255,255,0.45)"
+                stroke-width="2"
+            />
+
+            ${lines.map((line, index) => `
+                <text
+                    x="${x + NODE_WIDTH / 2}"
+                    y="${y + 18 + index * 12}"
+                    text-anchor="middle"
+                    font-family="Arial, sans-serif"
+                    font-size="9"
+                    font-weight="700"
+                    fill="white"
+                    clip-path="url(#clip-${node.id})"
+                >
+                    ${line}
+                </text>
+            `).join("")}
+
+        </g>
+    `
+    }).join("")
+
+    const svg = `
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="${width}"
+            height="${height}"
+            viewBox="0 0 ${width} ${height}"
+        >
+            <defs>
+                <marker
+                    id="arrow"
+                    markerWidth="10"
+                    markerHeight="10"
+                    refX="8"
+                    refY="3"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                >
+                    <path d="M0,0 L0,6 L9,3 z" fill="#22c55e" />
+                </marker>
+            </defs>
+
+            <rect width="100%" height="100%" fill="#0f172a" />
+            ${svgEdges}
+            ${svgNodes}
+        </svg>
+    `
+
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `topologia_snapshot_${snapshotTime}s.svg`
+    link.click()
+
+    URL.revokeObjectURL(url)
+}
 
 export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
     const topologyNodesForSnapshot = mergeSnapshotState(
@@ -492,7 +633,7 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
     }, [hoveredEdgeId, topology.edges, activeEdges])
 
     const edges = buildFlowEdges(topology.edges, activeEdges, highlightedEdges)
-
+    const topologyRef = useRef<HTMLDivElement | null>(null)
     return (
         <SectionCard title="Topología eléctrica">
             <div className="topology-wrapper">
@@ -503,8 +644,10 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
                     <span><i className="legend-dot legend-blue" /> Reserva</span>
                     <span><i className="legend-dot legend-gray" /> Desconectado / desconocido</span>
                 </div>
-
-                <div className="topology-container">
+                <button type="button" onClick={() => exportGraphAsSvg(nodes, edges, snapshot?.tiempo_s ?? 0)}>
+                    Exportar snapshot {snapshot?.tiempo_s ?? 0}s
+                </button>
+                <div className="topology-container" ref={topologyRef}>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
