@@ -421,8 +421,8 @@ class ProcesadorEventos:
                     ):
                         puede_suministrar = True
                         break
-            #solo si realmente puede alimentar, y la capacidad es mayor a la demanda entonces las UPS salen de bateria
-            if puede_suministrar and capacidad >= demanda:
+            #solo si realmente puede alimentar
+            if puede_suministrar:
                 for comp in estado.componentes.values():
                     if comp.tipo.lower() =="ups":
                         comp.en_bateria = False
