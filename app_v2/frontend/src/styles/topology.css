@@ -113,3 +113,25 @@
 .legend-gray {
     background-color: #6b7280;
 }
+
+.topology-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.topology-comparison-panel .topology-container {
+    height: 520px;
+}
+
+.topology-comparison-panel .section-card {
+    margin-top: 0;
+}
+
+.topology-comparison-controls {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: #111827;
+    padding: 0.75rem 0;
+}

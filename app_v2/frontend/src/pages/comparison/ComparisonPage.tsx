@@ -15,6 +15,7 @@ import KpisComparison from "../../components/comparison/KpisComparison"
 import RootCauseComparison from "../../components/comparison/RootCauseComparison"
 import EventsComparison from "../../components/comparison/EventsComparison"
 import SnapshotsComparison from "../../components/comparison/SnapshotsComparison"
+import TopologyComparison from "../../components/comparison/TopologyComparison"
 
 
 export default function ComparisonPage() {
@@ -137,6 +138,8 @@ export default function ComparisonPage() {
                     <EventsComparison resultA={resultA} resultB={resultB} />
 
                     <SnapshotsComparison resultA={resultA} resultB={resultB} />
+
+                    <TopologyComparison resultA={resultA} resultB={resultB} />
                 </>
             )}
         </div>
