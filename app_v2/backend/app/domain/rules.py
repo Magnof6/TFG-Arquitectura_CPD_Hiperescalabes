@@ -52,7 +52,7 @@ class MotorReglas:
         return False
     
     def conexion_esta_disponible (self, conexion) -> bool:
-        return conexion.estado == "activa"
+        return (conexion.estado == "activa" and getattr(conexion, "activa_operativa", True))
     
     def obtener_capacidad_componente_kw(self, componente) -> float:
         """Devuelve la capacidad útil en kW del componente"""
@@ -1044,34 +1044,46 @@ class MotorReglas:
 
             return eventos
 
-        #Marcar la reserva como USADA
         sts_reserva.estado = "activo"
 
-        # Reconfigurar STS de reserva hacia el bus del bloque afectado
-        self.topologia.eliminar_conexion(f"ups_m{modulo}_{bloque}_a", sts_id)
-        self.topologia.eliminar_conexion(f"ups_m{modulo}_{bloque}_b", sts_id)
-        self.topologia.eliminar_conexion(sts_id, f"bus_m{modulo}_{bloque}")
+        def desactivar_conexion(origen_id: str, destino_id: str):
+            conexion = self.topologia.obtener_conexion(origen_id, destino_id)
 
-        self.topologia.agregar_conexion(
-            models.ConexionElectrica(
-                origen_id=f"ups_m{modulo}_{bloque}_a",
-                destino_id=sts_reserva_id,
-                tipo="respaldo",
+            if conexion is not None:
+                conexion.activa_operativa = False
+
+        def activar_o_crear_conexion(origen_id: str, destino_id: str):
+            conexion = self.topologia.obtener_conexion(origen_id, destino_id)
+
+            if conexion is not None:
+                conexion.activa_operativa = True
+                conexion.estado = "activa"
+                return
+
+            self.topologia.agregar_conexion(
+                models.ConexionElectrica(
+                    origen_id=origen_id,
+                    destino_id=destino_id,
+                    tipo="respaldo",
+                    activa_operativa=True,
+                )
             )
+
+        desactivar_conexion(f"ups_m{modulo}_{bloque}_a", sts_id)
+        desactivar_conexion(f"ups_m{modulo}_{bloque}_b", sts_id)
+        desactivar_conexion(sts_id, f"bus_m{modulo}_{bloque}")
+
+        activar_o_crear_conexion(
+            f"ups_m{modulo}_{bloque}_a",
+            sts_reserva_id,
         )
-        self.topologia.agregar_conexion(
-            models.ConexionElectrica(
-                origen_id=f"ups_m{modulo}_{bloque}_b",
-                destino_id=sts_reserva_id,
-                tipo="respaldo",
-            )
+        activar_o_crear_conexion(
+            f"ups_m{modulo}_{bloque}_b",
+            sts_reserva_id,
         )
-        self.topologia.agregar_conexion(
-            models.ConexionElectrica(
-                origen_id=sts_reserva_id,
-                destino_id=f"bus_m{modulo}_{bloque}",
-                tipo="respaldo",
-            )
+        activar_o_crear_conexion(
+            sts_reserva_id,
+            f"bus_m{modulo}_{bloque}",
         )
 
         eventos.append(
@@ -1098,7 +1110,6 @@ class MotorReglas:
         if rmu is None:
             return eventos
 
-        # De momento solo tratamos RMU de bloque: rmu_m1_1, rmu_m2_3, etc.
         if not rmu_id.startswith("rmu_m"):
             return eventos
 
@@ -1106,10 +1117,8 @@ class MotorReglas:
         if len(partes) != 2:
             return eventos
 
-        modulo = partes[0]
-        bloque = partes[1]
+        modulo, bloque = partes
 
-        # El bloque 7 es la reserva, no tiene sustituto equivalente
         if bloque == "7":
             return eventos
 
@@ -1118,34 +1127,38 @@ class MotorReglas:
         rmu_modulo_id = f"rmu_modulo_{modulo}"
 
         rmu_reserva = estado.componentes.get(rmu_reserva_id)
-        if rmu_reserva is None:
+        if rmu_reserva is None or rmu_reserva.estado != "reserva":
             return eventos
 
-        if rmu_reserva.estado != "reserva":
-            return eventos
+        rmu_reserva.estado = "activo"
 
-        # Reconfiguración topológica:
-        # rmu_modulo_X -> rmu_fallada pasa a rmu_modulo_X -> rmu_reserva
-        self.topologia.reemplazar_conexion(
-            origen_id=rmu_modulo_id,
-            destino_antiguo=rmu_id,
-            destino_nuevo=rmu_reserva_id,
-        )
+        def desactivar_conexion(origen_id: str, destino_id: str):
+            conexion = self.topologia.obtener_conexion(origen_id, destino_id)
+            if conexion is not None:
+                conexion.activa_operativa = False
 
-        # Se elimina la salida de la RMU fallada al trafo afectado
-        self.topologia.eliminar_conexion(
-            origen_id=rmu_id,
-            destino_id=trafo_afectado_id,
-        )
+        def activar_o_crear_conexion(origen_id: str, destino_id: str):
+            conexion = self.topologia.obtener_conexion(origen_id, destino_id)
 
-        # La RMU de reserva alimenta el trafo del bloque afectado
-        self.topologia.agregar_conexion(
-            models.ConexionElectrica(
-                origen_id=rmu_reserva_id,
-                destino_id=trafo_afectado_id,
-                tipo="respaldo",
+            if conexion is not None:
+                conexion.activa_operativa = True
+                conexion.estado = "activa"
+                return
+
+            self.topologia.agregar_conexion(
+                models.ConexionElectrica(
+                    origen_id=origen_id,
+                    destino_id=destino_id,
+                    tipo="respaldo",
+                    activa_operativa=True,
+                )
             )
-        )
+
+        desactivar_conexion(rmu_modulo_id, rmu_id)
+        desactivar_conexion(rmu_id, trafo_afectado_id)
+
+        activar_o_crear_conexion(rmu_modulo_id, rmu_reserva_id)
+        activar_o_crear_conexion(rmu_reserva_id, trafo_afectado_id)
 
         eventos.append(
             models.EntradaReserva(
@@ -1161,7 +1174,6 @@ class MotorReglas:
                 componente_sustituido_id=rmu_id,
             )
         )
-        
 
         return eventos
 

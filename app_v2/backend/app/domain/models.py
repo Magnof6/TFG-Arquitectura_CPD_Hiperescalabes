@@ -206,6 +206,7 @@ class ConexionElectrica:
     estado: str = "activa"       # activa, fallada, desconectada
     tipo: str = "principal"      # principal, respaldo
     capacidad_kw: float = 0.0
+    activa_operativa: bool = True
 
     def esta_disponible(self) -> bool:
         return self.estado == "activa"
