@@ -6,6 +6,11 @@ import type {
     SimulationResultResponse,
 } from "../../types/api"
 
+import type {
+    ComponentCatalogItem,
+    CustomSimulationRunRequest,
+} from "../../features/events/types"
+
 export const api = axios.create({
     baseURL: 'https://ubiquitous-carnival-qrqr6qq9xjhqpg-8000.app.github.dev/api', // Cambiar esto por mi URL del backend FastAPI
 
@@ -22,6 +27,26 @@ export async function runSimulation(scenarioId: string) {
         {
             scenario_id: scenarioId,
         }
+    )
+
+    return response.data
+}
+
+export async function getComponentCatalog() {
+    const response = await api.get<ComponentCatalogItem[]>(
+        "/topology/components"
+    )
+
+    return response.data
+}
+
+
+export async function runCustomSimulation(
+    payload: CustomSimulationRunRequest
+) {
+    const response = await api.post<SimulationResultResponse>(
+        "/simulations/run-custom",
+        payload
     )
 
     return response.data
