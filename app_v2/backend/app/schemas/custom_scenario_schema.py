@@ -21,12 +21,14 @@ class CustomEventInput(BaseModel):
     severidad: int = Field(default=3, ge=1, le=5)
 
     causa: Optional[str] = None
-    porcentaje_sobrecarga: Optional[float] = None
-    duracion_s: Optional[float] = None
-    fuente_destino_id: Optional[str] = None
-    motivo: Optional[str] = None
     carga_kw: Optional[float] = None
     capacidad_disponible_kw: Optional[float] = None
+    fuente_origen: Optional[str] = None
+    fuente_destino: Optional[str] = None
+    generador_id: Optional[str] = None
+    motivo: Optional[str] = None
+    componente_reserva_id: Optional[str] = None
+    duracion_s: Optional[float] = 0
 
 
 class CustomSimulationRunRequest(BaseModel):
