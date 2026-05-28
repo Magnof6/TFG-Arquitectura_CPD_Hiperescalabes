@@ -15,6 +15,7 @@ from app.services.topology_service import build_topology_response
 from app.scenarios.scenario3 import ESCENARIOS_DC1, ESCENARIOS_SOBRECARGA
 from app.schemas.custom_scenario_schema import CustomSimulationRunRequest
 from app.services.event_factory import build_simulation_events
+from app.services.scenario_validator import validate_custom_events
 
 escenarios = {
     **ESCENARIOS_DC1,
@@ -163,6 +164,13 @@ def run_simulation_with_custom_events(
     return _build_simulation_response(scenario_name, estado, resultados)
 
 def run_custom_simulation(request: CustomSimulationRunRequest):
+    estado, _ = _get_scenario(request.base_scenario_id)
+
+    validate_custom_events(
+        estado=estado,
+        events=request.events,
+    )
+
     eventos = build_simulation_events(request.events)
 
     return run_simulation_with_custom_events(
