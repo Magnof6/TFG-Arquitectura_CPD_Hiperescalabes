@@ -5,7 +5,12 @@ from app.schemas.simulation_schema import (
     SimulationResultResponse,
 )
 
-from app.services.simulation_service import run_simulation
+from app.schemas.custom_scenario_schema import CustomSimulationRunRequest
+
+from app.services.simulation_service import (
+    run_simulation,
+    run_custom_simulation,
+)
 
 router = APIRouter(
     prefix="/api/simulations",
@@ -28,13 +33,18 @@ def run_simulation_endpoint(request: SimulationRunRequest):
             detail=str(e),
         )
 
-#Se encarga de ejecutar las simulaciones
-#Ejemplo del flujo:
-#Front-end --> POST /api/simulations/run --> simulationsR.py --> simulation_service.py --> MotorSimulación -> resultados --> json
 
-#el front-end envia
-#{
-#  "scenario_id": "escenario_dc1_fallo_emf"
-#}
+@router.post(
+    "/run-custom",
+    response_model=SimulationResultResponse,
+)
+def run_custom_simulation_endpoint(request: CustomSimulationRunRequest):
 
-#Y recibirá KPIs, eventos, snapshots y estado final de la topología para mostrar en el dashboard
+    try:
+        return run_custom_simulation(request)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e),
+        )
