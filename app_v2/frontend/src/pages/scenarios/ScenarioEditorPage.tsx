@@ -21,7 +21,19 @@ const DEFAULT_SCENARIO_ID = 'escenario_dc1_sin_eventos'
 export function ScenarioEditorPage() {
     const [components, setComponents] = useState<ComponentCatalogItem[]>([])
 
-    const [customScenarios, setCustomScenarios] = useState<CustomScenarioDraft[]>([])
+    const [customScenarios, setCustomScenarios] = useState<CustomScenarioDraft[]>(() => {
+        const stored = localStorage.getItem('customScenarios')
+
+        if (!stored) {
+            return []
+        }
+
+        try {
+            return JSON.parse(stored)
+        } catch {
+            return []
+        }
+    })    
     const [selectedScenarioId, setSelectedScenarioId] = useState<string>('')
 
     const [scenarioName, setScenarioName] = useState('')
@@ -104,6 +116,13 @@ export function ScenarioEditorPage() {
             setSelectedComponentId(filteredComponents[0].id)
         }
     }, [filteredComponents, selectedComponentId])
+
+    useEffect(() => {
+        localStorage.setItem(
+            'customScenarios',
+            JSON.stringify(customScenarios),
+        )
+    }, [customScenarios])
 
     function createScenario() {
         setError(null)
