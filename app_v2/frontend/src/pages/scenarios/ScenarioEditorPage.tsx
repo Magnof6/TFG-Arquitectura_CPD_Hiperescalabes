@@ -40,6 +40,7 @@ export function ScenarioEditorPage() {
     const [scenarioDescription, setScenarioDescription] = useState('')
 
     const [isEventModalOpen, setIsEventModalOpen] = useState(false)
+    const [editingEventIndex, setEditingEventIndex] = useState<number | null>(null)
 
     const [eventType, setEventType] = useState<CustomEventType>('FalloComponente')
     const [selectedComponentId, setSelectedComponentId] = useState('')
@@ -314,6 +315,55 @@ export function ScenarioEditorPage() {
         setReserveComponentId('')
     }
 
+    function deleteEventFromScenario(eventIndex: number) {
+        setCustomScenarios((prev) =>
+            prev.map((scenario) =>
+                scenario.id === selectedScenarioId
+                    ? {
+                        ...scenario,
+                        events: scenario.events.filter(
+                            (_, index) => index !== eventIndex,
+                        ),
+                    }
+                    : scenario,
+            ),
+        )
+
+        setMessage('Evento eliminado correctamente')
+    }
+
+    function startEditingEvent(
+        event: CustomEventInput,
+        index: number,
+    ) {
+        setEditingEventIndex(index)
+
+        setEventType(event.tipo)
+        setSelectedComponentId(event.objetivo_id)
+        setTime(event.tiempo_s)
+        setDuration(event.duracion_s ?? 0)
+        setDescription(event.descripcion)
+        setSeverity(event.severidad)
+
+        setCause(event.causa ?? '')
+        setLoadKw(event.carga_kw ?? 0)
+        setAvailableCapacityKw(
+            event.capacidad_disponible_kw ?? 0,
+        )
+
+        setSourceOrigin(event.fuente_origen ?? '')
+        setSourceDestination(event.fuente_destino ?? '')
+
+        setGeneratorId(event.generador_id ?? '')
+        setReason(event.motivo ?? '')
+
+        setReserveComponentId(
+            event.componente_reserva_id ?? '',
+        )
+
+        setIsEventModalOpen(true)
+    }
+
     function addEventToScenario() {
         setError(null)
         setMessage(null)
@@ -327,16 +377,42 @@ export function ScenarioEditorPage() {
 
         const event = buildEvent()
 
-        setCustomScenarios((prev) =>
-            prev.map((scenario) =>
-                scenario.id === selectedScenarioId
-                    ? {
-                        ...scenario,
-                        events: [...scenario.events, event],
-                    }
-                    : scenario,
-            ),
-        )
+        if (editingEventIndex !== null) {
+            setCustomScenarios((prev) =>
+                prev.map((scenario) =>
+                    scenario.id === selectedScenarioId
+                        ? {
+                            ...scenario,
+                            events: scenario.events.map(
+                                (currentEvent, index) =>
+                                    index === editingEventIndex
+                                        ? event
+                                        : currentEvent,
+                            ),
+                        }
+                        : scenario,
+                ),
+            )
+
+            setEditingEventIndex(null)
+
+            setMessage('Evento editado correctamente')
+        } else {
+            setCustomScenarios((prev) =>
+                prev.map((scenario) =>
+                    scenario.id === selectedScenarioId
+                        ? {
+                            ...scenario,
+                            events: [...scenario.events, event],
+                        }
+                        : scenario,
+                ),
+            )
+
+            setMessage(
+                'Se ha añadido correctamente el evento al escenario custom',
+            )
+        }
 
         setIsEventModalOpen(false)
         resetEventForm()
@@ -498,6 +574,26 @@ export function ScenarioEditorPage() {
                                 <strong>{event.tipo}</strong> ·{' '}
                                 {event.objetivo_id} · t={event.tiempo_s}s ·{' '}
                                 {event.descripcion}
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        startEditingEvent(event, index)
+                                    }
+                                    style={{ marginLeft: '8px' }}
+                                >
+                                    Editar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        deleteEventFromScenario(index)
+                                    }
+                                    style={{ marginLeft: '8px' }}
+                                >
+                                    Eliminar
+                                </button>
                             </li>
                         ))}
                     </ul>
