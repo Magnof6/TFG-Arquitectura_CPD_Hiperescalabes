@@ -33,7 +33,7 @@ export function ScenarioEditorPage() {
         } catch {
             return []
         }
-    })    
+    })
     const [selectedScenarioId, setSelectedScenarioId] = useState<string>('')
 
     const [scenarioName, setScenarioName] = useState('')
@@ -159,6 +159,27 @@ export function ScenarioEditorPage() {
         setScenarioDescription('')
 
         setMessage('Escenario custom creado correctamente')
+    }
+
+    function deleteScenario(scenarioId: string) {
+        const confirmed = window.confirm(
+            '¿Seguro que deseas eliminar este escenario custom?'
+        )
+
+        if (!confirmed) {
+            return
+        }
+
+        setCustomScenarios((prev) =>
+            prev.filter((scenario) => scenario.id !== scenarioId)
+        )
+
+        if (selectedScenarioId === scenarioId) {
+            setSelectedScenarioId('')
+            setSimulationResult(null)
+        }
+
+        setMessage('Escenario eliminado correctamente')
     }
 
     function validateEvent(): string | null {
@@ -411,16 +432,34 @@ export function ScenarioEditorPage() {
                 )}
 
                 {customScenarios.map((scenario) => (
-                    <button
+                    <div
                         key={scenario.id}
-                        type="button"
-                        onClick={() => setSelectedScenarioId(scenario.id)}
-                        className={
-                            scenario.id === selectedScenarioId ? 'active' : ''
-                        }
+                        style={{
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            marginBottom: '8px',
+                        }}
                     >
-                        {scenario.name} ({scenario.events.length} eventos)
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedScenarioId(scenario.id)}
+                            className={
+                                scenario.id === selectedScenarioId
+                                    ? 'active'
+                                    : ''
+                            }
+                        >
+                            {scenario.name} ({scenario.events.length} eventos)
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => deleteScenario(scenario.id)}
+                        >
+                            Eliminar
+                        </button>
+                    </div>
                 ))}
             </section>
 
