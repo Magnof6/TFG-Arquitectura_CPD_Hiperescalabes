@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 
 import {
     getComponentCatalog,
-    runCustomSimulation,
 } from '../../services/api/client'
 
 import type {
@@ -12,7 +11,10 @@ import type {
     CustomScenarioDraft,
 } from '../../features/events/types'
 
-import type { SimulationResultResponse } from '../../types/api'
+import CustomScenarioList from "../../components/scenarios/CustomScenarioList"
+import SelectedScenarioDetail from "../../components/scenarios/SelectedScenarioDetail"
+import EventFormModal from "../../components/scenarios/EventFormModal"
+import CustomScenarioForm from "../../components/scenarios/CustomScenarioForm"
 
 
 const DEFAULT_SCENARIO_ID = 'escenario_dc1_sin_eventos'
@@ -58,10 +60,8 @@ export function ScenarioEditorPage() {
     const [reason, setReason] = useState('')
     const [reserveComponentId, setReserveComponentId] = useState('')
 
-    const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
-    const [simulationResult, setSimulationResult] = useState<SimulationResultResponse | null>(null)
 
     useEffect(() => {
         getComponentCatalog()
@@ -177,7 +177,6 @@ export function ScenarioEditorPage() {
 
         if (selectedScenarioId === scenarioId) {
             setSelectedScenarioId('')
-            setSimulationResult(null)
         }
 
         setMessage('Escenario eliminado correctamente')
@@ -409,466 +408,78 @@ export function ScenarioEditorPage() {
                 ),
             )
 
-            setMessage(
-                'Se ha añadido correctamente el evento al escenario custom',
-            )
+            setMessage('Se ha añadido correctamente el evento al escenario custom')
         }
 
         setIsEventModalOpen(false)
         resetEventForm()
-        setMessage('Se ha añadido correctamente el evento al escenario custom')
     }
 
-    async function executeSelectedScenario() {
-        setError(null)
-        setMessage(null)
-
-        console.log('Ejecutando escenario:', selectedScenario)
-
-        if (!selectedScenario) {
-            setError('Debe seleccionar un escenario custom')
-            return
-        }
-
-        if (selectedScenario.events.length === 0) {
-            setError('El escenario custom debe tener al menos un evento')
-            return
-        }
-
-        setLoading(true)
-
-        try {
-            const result = await runCustomSimulation({
-                scenario_name: selectedScenario.name,
-                description: selectedScenario.description,
-                severity: selectedScenario.severity,
-                base_scenario_id: selectedScenario.base_scenario_id,
-                events: selectedScenario.events,
-            })
-
-            console.log('Resultado simulación custom:', result)
-            setSimulationResult(result)
-
-            setMessage(
-                `Simulación ejecutada correctamente. Estado final: ${result.kpis.estado_global_final}`,
-            )
-        } catch (err: any) {
-            console.error('Error ejecutando escenario custom:', err)
-
-            setError(
-                err.response?.data?.detail ??
-                err.message ??
-                'Error desconocido ejecutando la simulación',
-            )
-        } finally {
-            setLoading(false)
-        }
-    }
 
     return (
         <main className="page">
-            <section className="card">
-                <h1>Editor de escenarios</h1>
+            <CustomScenarioForm
+                scenarioName={scenarioName}
+                setScenarioName={setScenarioName}
+                scenarioDescription={scenarioDescription}
+                setScenarioDescription={setScenarioDescription}
+                message={message}
+                error={error}
+                onCreateScenario={createScenario}
+            />
 
-                {message && <p className="success">{message}</p>}
-                {error && <p className="error">{error}</p>}
-
-                <div className="form-grid">
-                    <label>
-                        ID / nombre del escenario
-                        <input
-                            value={scenarioName}
-                            onChange={(event) =>
-                                setScenarioName(event.target.value)
-                            }
-                        />
-                    </label>
-
-                    <label>
-                        Descripción del escenario
-                        <input
-                            value={scenarioDescription}
-                            onChange={(event) =>
-                                setScenarioDescription(event.target.value)
-                            }
-                        />
-                    </label>
-                </div>
-
-                <button type="button" onClick={createScenario}>
-                    Crear escenario custom
-                </button>
-            </section>
-
-            <section className="card">
-                <h2>Escenarios custom</h2>
-
-                {customScenarios.length === 0 && (
-                    <p>No hay escenarios custom todavía.</p>
-                )}
-
-                {customScenarios.map((scenario) => (
-                    <div
-                        key={scenario.id}
-                        style={{
-                            display: 'flex',
-                            gap: '8px',
-                            alignItems: 'center',
-                            marginBottom: '8px',
-                        }}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => setSelectedScenarioId(scenario.id)}
-                            className={
-                                scenario.id === selectedScenarioId
-                                    ? 'active'
-                                    : ''
-                            }
-                        >
-                            {scenario.name} ({scenario.events.length} eventos)
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => deleteScenario(scenario.id)}
-                        >
-                            Eliminar
-                        </button>
-                    </div>
-                ))}
-            </section>
+            <CustomScenarioList
+                scenarios={customScenarios}
+                selectedScenarioId={selectedScenarioId}
+                onSelectScenario={setSelectedScenarioId}
+                onDeleteScenario={deleteScenario}
+            />
 
             {selectedScenario && (
-                <section className="card">
-                    <h2>{selectedScenario.name}</h2>
-
-                    <p>{selectedScenario.description}</p>
-
-                    <button
-                        type="button"
-                        onClick={() => setIsEventModalOpen(true)}
-                    >
-                        Añadir evento
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={executeSelectedScenario}
-                        disabled={loading}
-                    >
-                        {loading
-                            ? 'Ejecutando...'
-                            : 'Ejecutar escenario custom'}
-                    </button>
-
-                    <h3>Eventos</h3>
-
-                    {selectedScenario.events.length === 0 && (
-                        <p>Este escenario todavía no tiene eventos.</p>
-                    )}
-
-                    <ul>
-                        {selectedScenario.events.map((event, index) => (
-                            <li key={`${event.tipo}-${event.objetivo_id}-${index}`}>
-                                <strong>{event.tipo}</strong> ·{' '}
-                                {event.objetivo_id} · t={event.tiempo_s}s ·{' '}
-                                {event.descripcion}
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        startEditingEvent(event, index)
-                                    }
-                                    style={{ marginLeft: '8px' }}
-                                >
-                                    Editar
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        deleteEventFromScenario(index)
-                                    }
-                                    style={{ marginLeft: '8px' }}
-                                >
-                                    Eliminar
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </section>
+                <SelectedScenarioDetail
+                    scenario={selectedScenario}
+                    onAddEvent={() => setIsEventModalOpen(true)}
+                    onEditEvent={startEditingEvent}
+                    onDeleteEvent={deleteEventFromScenario}
+                />
             )}
 
-            {simulationResult && (
-                <section className="card">
-                    <h2>Resultado de la simulación</h2>
-
-                    <p>
-                        <strong>Estado final:</strong>{' '}
-                        {simulationResult.kpis.estado_global_final}
-                    </p>
-
-                    <p>
-                        <strong>Carga servida:</strong>{' '}
-                        {simulationResult.kpis.carga_servida_kw} kW
-                    </p>
-
-                    <p>
-                        <strong>Carga perdida:</strong>{' '}
-                        {simulationResult.kpis.carga_perdida_kw} kW
-                    </p>
-
-                    <p>
-                        <strong>Eventos procesados:</strong>{' '}
-                        {simulationResult.kpis.num_eventos_procesados}
-                    </p>
-                </section>
-            )}
 
             {isEventModalOpen && (
-                <div className="modal-backdrop">
-                    <div className="card modal">
-                        <h2>Añadir evento</h2>
-
-                        <div className="form-grid">
-                            <label>
-                                Tipo de evento
-                                <select
-                                    value={eventType}
-                                    onChange={(event) =>
-                                        setEventType(
-                                            event.target
-                                                .value as CustomEventType,
-                                        )
-                                    }
-                                >
-                                    <option value="FalloComponente">
-                                        Fallo componente
-                                    </option>
-                                    <option value="RecuperacionComponente">
-                                        Recuperación componente
-                                    </option>
-                                    <option value="Sobrecarga">
-                                        Sobrecarga
-                                    </option>
-                                    <option value="ConmutacionFuente">
-                                        Conmutación fuente
-                                    </option>
-                                    <option value="ParadaGenerador">
-                                        Parada generador
-                                    </option>
-                                    <option value="SalidaReserva">
-                                        Salida reserva
-                                    </option>
-                                </select>
-                            </label>
-
-                            <label>
-                                Componente
-                                <select
-                                    value={selectedComponentId}
-                                    onChange={(event) =>
-                                        setSelectedComponentId(
-                                            event.target.value,
-                                        )
-                                    }
-                                >
-                                    {filteredComponents.map((component) => (
-                                        <option
-                                            key={component.id}
-                                            value={component.id}
-                                        >
-                                            {component.label} ({component.id})
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-
-                            <label>
-                                Tiempo, s
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={time}
-                                    onChange={(event) =>
-                                        setTime(Number(event.target.value))
-                                    }
-                                />
-                            </label>
-
-                            <label>
-                                Duración, s
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={duration}
-                                    onChange={(event) =>
-                                        setDuration(Number(event.target.value))
-                                    }
-                                />
-                            </label>
-
-                            <label>
-                                Severidad
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={5}
-                                    value={severity}
-                                    onChange={(event) =>
-                                        setSeverity(Number(event.target.value))
-                                    }
-                                />
-                            </label>
-
-                            <label>
-                                Descripción
-                                <input
-                                    value={description}
-                                    onChange={(event) =>
-                                        setDescription(event.target.value)
-                                    }
-                                />
-                            </label>
-
-                            {(eventType === 'FalloComponente' ||
-                                eventType ===
-                                'RecuperacionComponente') && (
-                                    <label>
-                                        Causa
-                                        <input
-                                            value={cause}
-                                            onChange={(event) =>
-                                                setCause(event.target.value)
-                                            }
-                                        />
-                                    </label>
-                                )}
-
-                            {eventType === 'Sobrecarga' && (
-                                <>
-                                    <label>
-                                        Carga kW
-                                        <input
-                                            type="number"
-                                            value={loadKw}
-                                            onChange={(event) =>
-                                                setLoadKw(
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                        />
-                                    </label>
-
-                                    <label>
-                                        Capacidad disponible kW
-                                        <input
-                                            type="number"
-                                            value={availableCapacityKw}
-                                            onChange={(event) =>
-                                                setAvailableCapacityKw(
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                        />
-                                    </label>
-                                </>
-                            )}
-
-                            {eventType === 'ConmutacionFuente' && (
-                                <>
-                                    <label>
-                                        Fuente origen
-                                        <input
-                                            value={sourceOrigin}
-                                            onChange={(event) =>
-                                                setSourceOrigin(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </label>
-
-                                    <label>
-                                        Fuente destino
-                                        <input
-                                            value={sourceDestination}
-                                            onChange={(event) =>
-                                                setSourceDestination(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </label>
-                                </>
-                            )}
-
-                            {eventType === 'ParadaGenerador' && (
-                                <>
-                                    <label>
-                                        Generador ID
-                                        <input
-                                            value={generatorId}
-                                            onChange={(event) =>
-                                                setGeneratorId(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </label>
-
-                                    <label>
-                                        Motivo
-                                        <input
-                                            value={reason}
-                                            onChange={(event) =>
-                                                setReason(event.target.value)
-                                            }
-                                        />
-                                    </label>
-                                </>
-                            )}
-
-                            {eventType === 'SalidaReserva' && (
-                                <>
-                                    <label>
-                                        Componente reserva ID
-                                        <input
-                                            value={reserveComponentId}
-                                            onChange={(event) =>
-                                                setReserveComponentId(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </label>
-
-                                    <label>
-                                        Motivo
-                                        <input
-                                            value={reason}
-                                            onChange={(event) =>
-                                                setReason(event.target.value)
-                                            }
-                                        />
-                                    </label>
-                                </>
-                            )}
-                        </div>
-
-                        <button type="button" onClick={addEventToScenario}>
-                            Añadir evento al escenario
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setIsEventModalOpen(false)}
-                        >
-                            Cancelar
-                        </button>
-                    </div>
-                </div>
+                <EventFormModal
+                    eventType={eventType}
+                    setEventType={setEventType}
+                    filteredComponents={filteredComponents}
+                    selectedComponentId={selectedComponentId}
+                    setSelectedComponentId={setSelectedComponentId}
+                    time={time}
+                    setTime={setTime}
+                    duration={duration}
+                    setDuration={setDuration}
+                    severity={severity}
+                    setSeverity={setSeverity}
+                    description={description}
+                    setDescription={setDescription}
+                    cause={cause}
+                    setCause={setCause}
+                    loadKw={loadKw}
+                    setLoadKw={setLoadKw}
+                    availableCapacityKw={availableCapacityKw}
+                    setAvailableCapacityKw={setAvailableCapacityKw}
+                    sourceOrigin={sourceOrigin}
+                    setSourceOrigin={setSourceOrigin}
+                    sourceDestination={sourceDestination}
+                    setSourceDestination={setSourceDestination}
+                    generatorId={generatorId}
+                    setGeneratorId={setGeneratorId}
+                    reason={reason}
+                    setReason={setReason}
+                    reserveComponentId={reserveComponentId}
+                    setReserveComponentId={setReserveComponentId}
+                    editingEventIndex={editingEventIndex}
+                    onSave={addEventToScenario}
+                    onCancel={() => setIsEventModalOpen(false)}
+                />
             )}
         </main>
     )
