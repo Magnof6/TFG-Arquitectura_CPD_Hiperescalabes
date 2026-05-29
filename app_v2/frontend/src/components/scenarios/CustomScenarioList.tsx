@@ -18,7 +18,7 @@ export default function CustomScenarioList({
     onDeleteScenario,
 }: Props) {
     return (
-        <section className="card">
+        <section className="section-card">
             <h2>Escenarios custom</h2>
 
             {scenarios.length === 0 && (
@@ -40,8 +40,8 @@ export default function CustomScenarioList({
                         onClick={() => onSelectScenario(scenario.id)}
                         className={
                             scenario.id === selectedScenarioId
-                                ? "active"
-                                : ""
+                                ? "button scenario-list-button active"
+                                : "button button-secondary scenario-list-button"
                         }
                     >
                         {scenario.name} ({scenario.events.length} eventos)
@@ -49,6 +49,7 @@ export default function CustomScenarioList({
 
                     <button
                         type="button"
+                        className="button-danger"
                         onClick={() => onDeleteScenario(scenario.id)}
                     >
                         Eliminar

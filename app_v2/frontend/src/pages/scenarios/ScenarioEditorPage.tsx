@@ -16,6 +16,7 @@ import SelectedScenarioDetail from "../../components/scenarios/SelectedScenarioD
 import EventFormModal from "../../components/scenarios/EventFormModal"
 import CustomScenarioForm from "../../components/scenarios/CustomScenarioForm"
 
+import "../../styles/scenario-editor.css"
 
 const DEFAULT_SCENARIO_ID = 'escenario_dc1_sin_eventos'
 
@@ -417,33 +418,39 @@ export function ScenarioEditorPage() {
 
 
     return (
-        <main className="page">
-            <CustomScenarioForm
-                scenarioName={scenarioName}
-                setScenarioName={setScenarioName}
-                scenarioDescription={scenarioDescription}
-                setScenarioDescription={setScenarioDescription}
-                message={message}
-                error={error}
-                onCreateScenario={createScenario}
-            />
+        <main className="page-container">
+            <div className="scenario-editor-layout">
+                <div className="scenario-editor-sidebar">
+                    <CustomScenarioForm
+                        scenarioName={scenarioName}
+                        setScenarioName={setScenarioName}
+                        scenarioDescription={scenarioDescription}
+                        setScenarioDescription={setScenarioDescription}
+                        message={message}
+                        error={error}
+                        onCreateScenario={createScenario}
+                    />
 
-            <CustomScenarioList
-                scenarios={customScenarios}
-                selectedScenarioId={selectedScenarioId}
-                onSelectScenario={setSelectedScenarioId}
-                onDeleteScenario={deleteScenario}
-            />
+                    <CustomScenarioList
+                        scenarios={customScenarios}
+                        selectedScenarioId={selectedScenarioId}
+                        onSelectScenario={setSelectedScenarioId}
+                        onDeleteScenario={deleteScenario}
+                    />
 
-            {selectedScenario && (
-                <SelectedScenarioDetail
-                    scenario={selectedScenario}
-                    onAddEvent={() => setIsEventModalOpen(true)}
-                    onEditEvent={startEditingEvent}
-                    onDeleteEvent={deleteEventFromScenario}
-                />
-            )}
+                </div>
 
+                <div className="scenario-editor-main">
+                    {selectedScenario && (
+                        <SelectedScenarioDetail
+                            scenario={selectedScenario}
+                            onAddEvent={() => setIsEventModalOpen(true)}
+                            onEditEvent={startEditingEvent}
+                            onDeleteEvent={deleteEventFromScenario}
+                        />
+                    )}
+                </div>
+            </div>
 
             {isEventModalOpen && (
                 <EventFormModal
@@ -480,6 +487,7 @@ export function ScenarioEditorPage() {
                     onSave={addEventToScenario}
                     onCancel={() => setIsEventModalOpen(false)}
                 />
+
             )}
         </main>
     )

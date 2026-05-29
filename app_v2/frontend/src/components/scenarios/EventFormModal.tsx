@@ -194,16 +194,16 @@ export default function EventFormModal({
 
                     {(eventType === "FalloComponente" ||
                         eventType === "RecuperacionComponente") && (
-                        <label>
-                            Causa
-                            <input
-                                value={cause}
-                                onChange={(event) =>
-                                    setCause(event.target.value)
-                                }
-                            />
-                        </label>
-                    )}
+                            <label>
+                                Causa
+                                <input
+                                    value={cause}
+                                    onChange={(event) =>
+                                        setCause(event.target.value)
+                                    }
+                                />
+                            </label>
+                        )}
 
                     {eventType === "Sobrecarga" && (
                         <>
@@ -312,15 +312,25 @@ export default function EventFormModal({
                     )}
                 </div>
 
-                <button type="button" onClick={onSave}>
-                    {editingEventIndex !== null
-                        ? "Guardar cambios"
-                        : "Añadir evento al escenario"}
-                </button>
+                <div className="button-group">
+                    <button
+                        type="button"
+                        className="button"
+                        onClick={onSave}
+                    >
+                        {editingEventIndex !== null
+                            ? "Guardar cambios"
+                            : "Añadir evento al escenario"}
+                    </button>
 
-                <button type="button" onClick={onCancel}>
-                    Cancelar
-                </button>
+                    <button
+                        type="button"
+                        className="button button-secondary"
+                        onClick={onCancel}
+                    >
+                        Cancelar
+                    </button>
+                </div>
             </div>
         </div>
     )

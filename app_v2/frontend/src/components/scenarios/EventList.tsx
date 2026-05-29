@@ -22,32 +22,35 @@ export default function EventList({
                 <p>Este escenario todavía no tiene eventos.</p>
             )}
 
-            <ul>
+            <ul className="event-list">
                 {events.map((event, index) => (
                     <li
                         key={`${event.tipo}-${event.objetivo_id}-${index}`}
+                        className="event-list-item"
                     >
-                        <strong>{event.tipo}</strong> ·{" "}
-                        {event.objetivo_id} · t={event.tiempo_s}s ·{" "}
-                        {event.descripcion}
+                        <div>
+                            <strong>{event.tipo}</strong> ·{" "}
+                            {event.objetivo_id} · t={event.tiempo_s}s ·{" "}
+                            {event.descripcion}
+                        </div>
 
-                        <button
-                            type="button"
-                            onClick={() =>
-                                onEditEvent(event, index)
-                            }
-                        >
-                            Editar
-                        </button>
+                        <div className="event-list-actions">
+                            <button
+                                type="button"
+                                className="button button-secondary"
+                                onClick={() => onEditEvent(event, index)}
+                            >
+                                Editar
+                            </button>
 
-                        <button
-                            type="button"
-                            onClick={() =>
-                                onDeleteEvent(index)
-                            }
-                        >
-                            Eliminar
-                        </button>
+                            <button
+                                type="button"
+                                className="button-danger"
+                                onClick={() => onDeleteEvent(index)}
+                            >
+                                Eliminar
+                            </button>
+                        </div>
                     </li>
                 ))}
             </ul>

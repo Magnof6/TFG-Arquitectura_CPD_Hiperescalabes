@@ -19,12 +19,16 @@ export default function SelectedScenarioDetail({
     onDeleteEvent,
 }: Props) {
     return (
-        <section className="card">
+        <section className="section-card">
             <h2>{scenario.name}</h2>
 
             <p>{scenario.description}</p>
 
-            <button type="button" onClick={onAddEvent}>
+            <button
+                type="button"
+                className="button"
+                onClick={onAddEvent}
+            >
                 Añadir evento
             </button>
 

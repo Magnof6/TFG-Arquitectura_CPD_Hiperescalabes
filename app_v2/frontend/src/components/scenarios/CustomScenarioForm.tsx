@@ -18,7 +18,7 @@ export default function CustomScenarioForm({
     onCreateScenario,
 }: Props) {
     return (
-        <section className="card">
+        <section className="section-card">
             <h1>Editor de escenarios</h1>
 
             {message && <p className="success">{message}</p>}
@@ -46,7 +46,11 @@ export default function CustomScenarioForm({
                 </label>
             </div>
 
-            <button type="button" onClick={onCreateScenario}>
+            <button
+                type="button"
+                className="button"
+                onClick={onCreateScenario}
+            >
                 Crear escenario custom
             </button>
         </section>
