@@ -10,6 +10,9 @@ import type {
     SimulationResultResponse,
 } from "../../types/api";
 
+import type { CustomScenarioDraft } from "../../features/events/types"
+import { runCustomSimulation } from "../../services/api/client"
+
 import { compareSimulationResults } from "../../utils/compareSimulationResults";
 import KpisComparison from "../../components/comparison/KpisComparison"
 import RootCauseComparison from "../../components/comparison/RootCauseComparison"
@@ -20,6 +23,7 @@ import TopologyComparison from "../../components/comparison/TopologyComparison"
 
 export default function ComparisonPage() {
     const [scenarios, setScenarios] = useState<ScenarioResponse[]>([]);
+    const [customScenarios, setCustomScenarios] = useState<CustomScenarioDraft[]>([])
 
     const [scenarioA, setScenarioA] = useState("");
     const [scenarioB, setScenarioB] = useState("");
@@ -37,8 +41,18 @@ export default function ComparisonPage() {
         useState(false);
 
     useEffect(() => {
-        loadScenarios();
-    }, []);
+        loadScenarios()
+
+        const stored = localStorage.getItem("customScenarios")
+
+        if (stored) {
+            try {
+                setCustomScenarios(JSON.parse(stored))
+            } catch {
+                console.error("Error cargando escenarios custom")
+            }
+        }
+    }, [])
 
     async function loadScenarios() {
         try {
@@ -60,16 +74,47 @@ export default function ComparisonPage() {
         }
     }
 
+    function isCustomScenario(id: string) {
+        return customScenarios.some(
+            (scenario) => scenario.id === id
+        )
+    }
+
     async function handleCompare() {
         if (!scenarioA || !scenarioB) return;
 
         try {
             setRunningComparison(true);
 
-            const [simA, simB] = await Promise.all([
-                runSimulation(scenarioA),
-                runSimulation(scenarioB),
-            ]);
+            const simA = isCustomScenario(scenarioA)
+                ? await runCustomSimulation({
+                    scenario_name:
+                        customScenarios.find(s => s.id === scenarioA)!.name,
+                    description:
+                        customScenarios.find(s => s.id === scenarioA)!.description,
+                    severity:
+                        customScenarios.find(s => s.id === scenarioA)!.severity,
+                    base_scenario_id:
+                        customScenarios.find(s => s.id === scenarioA)!.base_scenario_id,
+                    events:
+                        customScenarios.find(s => s.id === scenarioA)!.events,
+                })
+                : await runSimulation(scenarioA)
+
+            const simB = isCustomScenario(scenarioB)
+                ? await runCustomSimulation({
+                    scenario_name:
+                        customScenarios.find(s => s.id === scenarioB)!.name,
+                    description:
+                        customScenarios.find(s => s.id === scenarioB)!.description,
+                    severity:
+                        customScenarios.find(s => s.id === scenarioB)!.severity,
+                    base_scenario_id:
+                        customScenarios.find(s => s.id === scenarioB)!.base_scenario_id,
+                    events:
+                        customScenarios.find(s => s.id === scenarioB)!.events,
+                })
+                : await runSimulation(scenarioB)
 
             setResultA(simA);
             setResultB(simB);
@@ -100,11 +145,21 @@ export default function ComparisonPage() {
                         value={scenarioA}
                         onChange={(e) => setScenarioA(e.target.value)}
                     >
-                        {scenarios.map((scenario) => (
-                            <option key={scenario.id} value={scenario.id}>
-                                {scenario.name}
-                            </option>
-                        ))}
+                        <optgroup label="Escenarios default">
+                            {scenarios.map((scenario) => (
+                                <option key={scenario.id} value={scenario.id}>
+                                    {scenario.name}
+                                </option>
+                            ))}
+                        </optgroup>
+
+                        <optgroup label="Escenarios custom">
+                            {customScenarios.map((scenario) => (
+                                <option key={scenario.id} value={scenario.id}>
+                                    {scenario.name}
+                                </option>
+                            ))}
+                        </optgroup>
                     </select>
 
                     <select
@@ -112,11 +167,21 @@ export default function ComparisonPage() {
                         value={scenarioB}
                         onChange={(e) => setScenarioB(e.target.value)}
                     >
-                        {scenarios.map((scenario) => (
-                            <option key={scenario.id} value={scenario.id}>
-                                {scenario.name}
-                            </option>
-                        ))}
+                        <optgroup label="Escenarios default">
+                            {scenarios.map((scenario) => (
+                                <option key={scenario.id} value={scenario.id}>
+                                    {scenario.name}
+                                </option>
+                            ))}
+                        </optgroup>
+
+                        <optgroup label="Escenarios custom">
+                            {customScenarios.map((scenario) => (
+                                <option key={scenario.id} value={scenario.id}>
+                                    {scenario.name}
+                                </option>
+                            ))}
+                        </optgroup>
                     </select>
 
                     <button
