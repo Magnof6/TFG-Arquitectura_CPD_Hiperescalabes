@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import {
     getScenarios,
     runSimulation,
+    runCustomSimulation,
 } from "../../services/api/client"
 
 import type {
@@ -11,6 +12,8 @@ import type {
 } from "../../types/api"
 
 import SimulationRunPanel from "../../components/ui/SimulationRunPanel"
+import type { ScenarioOption } from "../../components/ui/SimulationRunPanel"
+
 import KpiPanel from "../../components/ui/KpiPanel"
 import EventsTable from "../../components/tables/EventsTable"
 import SnapshotsTable from "../../components/tables/SnapshotTable"
@@ -18,8 +21,11 @@ import ComponentsAccordion from "../../components/tables/ComponentsAccordion"
 import ExportMenu from "../../components/ui/ExportMenu"
 import TopologyGraph from "../../components/charts/TopologyGraph"
 
+import type { CustomScenarioDraft } from "../../features/events/types"
+
 export default function ScenariosPage() {
     const [scenarios, setScenarios] = useState<ScenarioResponse[]>([])
+    const [customScenarios, setCustomScenarios] = useState<CustomScenarioDraft[]>([])
     const [selectedScenarioId, setSelectedScenarioId] = useState("")
     const [simulationResult, setSimulationResult] =
         useState<SimulationResultResponse | null>(null)
@@ -32,7 +38,33 @@ export default function ScenariosPage() {
 
     useEffect(() => {
         loadScenarios()
+
+        const stored = localStorage.getItem("customScenarios")
+
+        if (stored) {
+            try {
+                setCustomScenarios(JSON.parse(stored))
+            } catch {
+                console.error("Error cargando escenarios custom")
+            }
+        }
     }, [])
+
+    const scenarioOptions = useMemo<ScenarioOption[]>(() => {
+        return [
+            ...scenarios.map((scenario) => ({
+                id: scenario.id,
+                name: scenario.name,
+                source: "default" as const,
+            })),
+            ...customScenarios.map((scenario) => ({
+                id: scenario.id,
+                name: scenario.name,
+                source: "custom" as const,
+                eventsCount: scenario.events.length,
+            })),
+        ]
+    }, [scenarios, customScenarios])
 
     async function loadScenarios() {
         try {
@@ -55,7 +87,24 @@ export default function ScenariosPage() {
         try {
             setRunningSimulation(true)
 
-            const result = await runSimulation(selectedScenarioId)
+            let result: SimulationResultResponse
+
+            const customScenario = customScenarios.find(
+                (scenario) => scenario.id === selectedScenarioId
+            )
+
+            if (customScenario) {
+                result = await runCustomSimulation({
+                    scenario_name: customScenario.name,
+                    description: customScenario.description,
+                    severity: customScenario.severity,
+                    base_scenario_id: customScenario.base_scenario_id,
+                    events: customScenario.events,
+                })
+            } else {
+                result = await runSimulation(selectedScenarioId)
+            }
+
             setSimulationResult(result)
 
             setSelectedSnapshotIndex(
@@ -84,7 +133,7 @@ export default function ScenariosPage() {
             <h1>Simulación eléctrica CPD</h1>
 
             <SimulationRunPanel
-                scenarios={scenarios}
+                scenarios={scenarioOptions}
                 selectedScenarioId={selectedScenarioId}
                 runningSimulation={runningSimulation}
                 onScenarioChange={setSelectedScenarioId}

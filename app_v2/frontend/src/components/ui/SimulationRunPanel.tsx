@@ -1,7 +1,12 @@
-import type { ScenarioResponse } from "../../types/api"
+export interface ScenarioOption {
+    id: string
+    name: string
+    source: "default" | "custom"
+    eventsCount?: number
+}
 
 interface Props {
-    scenarios: ScenarioResponse[]
+    scenarios: ScenarioOption[]
     selectedScenarioId: string
     runningSimulation: boolean
     onScenarioChange: (scenarioId: string) => void
@@ -15,6 +20,14 @@ export default function SimulationRunPanel({
     onScenarioChange,
     onRunSimulation,
 }: Props) {
+    const defaultScenarios = scenarios.filter(
+        (scenario) => scenario.source === "default"
+    )
+
+    const customScenarios = scenarios.filter(
+        (scenario) => scenario.source === "custom"
+    )
+
     return (
         <section className="form-panel">
             <h2>Escenario</h2>
@@ -25,17 +38,30 @@ export default function SimulationRunPanel({
                     value={selectedScenarioId}
                     onChange={(event) => onScenarioChange(event.target.value)}
                 >
-                    {scenarios.map((scenario) => (
-                        <option key={scenario.id} value={scenario.id}>
-                            {scenario.name}
-                        </option>
-                    ))}
+                    <optgroup label="Escenarios default">
+                        {defaultScenarios.map((scenario) => (
+                            <option key={scenario.id} value={scenario.id}>
+                                {scenario.name}
+                            </option>
+                        ))}
+                    </optgroup>
+
+                    <optgroup label="Escenarios custom">
+                        {customScenarios.map((scenario) => (
+                            <option key={scenario.id} value={scenario.id}>
+                                {scenario.name}
+                                {scenario.eventsCount !== undefined
+                                    ? ` (${scenario.eventsCount} eventos)`
+                                    : ""}
+                            </option>
+                        ))}
+                    </optgroup>
                 </select>
 
                 <button
                     className="button"
                     onClick={onRunSimulation}
-                    disabled={runningSimulation}
+                    disabled={runningSimulation || !selectedScenarioId}
                 >
                     {runningSimulation ? "Ejecutando..." : "Ejecutar simulación"}
                 </button>
