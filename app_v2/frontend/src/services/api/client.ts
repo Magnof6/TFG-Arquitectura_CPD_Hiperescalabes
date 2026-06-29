@@ -11,9 +11,12 @@ import type {
     CustomSimulationRunRequest,
 } from "../../features/events/types"
 
-export const api = axios.create({
-    baseURL: 'https://ubiquitous-carnival-qrqr6qq9xjhqpg-8000.app.github.dev/api', // Cambiar esto por mi URL del backend FastAPI
+const isCodespaces = window.location.hostname.includes("app.github.dev");
 
+export const api = axios.create({
+    baseURL: isCodespaces
+        ? "https://ubiquitous-carnival-qrqr6qq9xjhqpg-8000.app.github.dev/api"
+        : "http://localhost:8000/api",
 });
 
 export async function getScenarios() {
