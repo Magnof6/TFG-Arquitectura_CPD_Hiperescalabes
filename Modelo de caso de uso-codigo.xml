@@ -1,0 +1,33 @@
+@startuml
+left to right direction
+
+actor Usuario
+
+rectangle "Simulador de CPD Hiperescalar" {
+
+package "Gestión" {
+    usecase "Gestionar escenarios\n(Crear / Eliminar)" as UC1
+    usecase "Gestionar eventos\n(Añadir / Editar / Eliminar)" as UC2
+}
+
+package "Simulación" {
+    usecase "Ejecutar simulación" as UC3
+    usecase "Analizar resultados\n(KPIs, eventos,\nsnapshots, topología,\ncomponentes)" as UC4
+
+}
+
+package "Resultados" {
+    usecase "Comparar escenarios\n(KPIs, eventos,\nsnapshots, topologías,\ncausa raíz)" as UC5
+    usecase "Exportar resultados\n(JSON, CSV,\ntopología)" as UC6
+}
+
+}
+
+Usuario --> UC1
+Usuario --> UC2
+Usuario --> UC3
+Usuario --> UC4
+Usuario --> UC5
+Usuario --> UC6
+
+@enduml
