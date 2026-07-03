@@ -1,7 +1,7 @@
 #OPERATIVIDAD, CAPACIDAD, N+1, PRIORIDAD DE FUENTES, ESTADO GLOBAL
 
 from __future__ import annotations
-from typing import List, Optional
+from typing import List
 
 import app.domain.models as models
 
@@ -86,9 +86,6 @@ class MotorReglas:
         for componente in estado.componentes.values():
             if self.componente_puede_suministrar(componente):
                 fuentes.append(componente)
-            #tipo =  componente.tipo.lower()
-            #if tipo in {"redelectrica", "ups", "generador"} and self.componente_es_operativo(componente):
-            #    fuentes.append(componente)
         return fuentes
 
     def tipo_fuente(self, componente) -> str:
@@ -101,11 +98,6 @@ class MotorReglas:
                 return "generador"
             return "otra"
 
-    def seleccionar_mejor_fuente(self, fuentes: List[object]) -> Optional[object]:
-        fuentes_validas = [f for f in fuentes if self.tipo_fuente(f) in self.PRIORIDAD_FUENTES]
-        if not fuentes_validas:
-            return None
-        return min(fuentes_validas, key=lambda f: self.PRIORIDAD_FUENTES[self.tipo_fuente(f)])
 
     def ruta_es_operativa(self, ruta: List[str], estado) -> bool:
         """
@@ -217,31 +209,6 @@ class MotorReglas:
     #---------------------------------------------------------
     # Alimentación de Cargas y Salas
     #---------------------------------------------------------
-
-    def carga_esta_alimentada(self, carga, estado) -> bool:
-        rutas= self.buscar_rutas_validas_a_destino(
-            destino_id=carga.id,
-            demanda_kw=carga.demanda_kw,
-            estado=estado
-        )
-        return len(rutas) > 0
-    
-    def carga_tiene_redundancia(self, carga, estado) -> bool:
-        rutas = self.buscar_rutas_validas_a_destino(
-            destino_id=carga.id,
-            demanda_kw=carga.demanda_kw,
-            estado=estado
-        )
-        return len(rutas) >= 2
-#Evaluar si me lo puedo cargar
-    def reevaluar_carga(self, carga, estado) -> None:
-        if self.carga_esta_alimentada(carga, estado):
-            if self.carga_tiene_redundancia(carga, estado):
-                carga.estado = "alimentado"
-            else:
-                carga.estado = "degradado"
-        else:
-            carga.estado = "sin_alimentacion"
 
     def reevaluar_todas_las_cargas(self, estado) -> None:
         if hasattr(estado, "zonas_it"):
@@ -381,23 +348,6 @@ class MotorReglas:
             or (len(componentes) > grupo.n_requerido and not reserva_disponible)
         )
 
-    def generar_evento_entrada_reserva(self, grupo, componente_fallado_id: str, tiempo_s: float):
-        """
-        Si un grupo N+1 pierde un activo y existe reserva, genera el evento de entrada.
-        """
-        reserva = None
-        componentes = getattr(grupo, "_componentes_cache", None)
-
-        # Este método se invoca desde events.py, así que el estado no está aquí;
-        # la reserva se buscará externamente si se quiere mayor precisión.
-        # En V1 lo resolvemos desde el propio grupo si ya se conoce.
-        if componentes:
-            for comp in componentes:
-                if comp.estado == "reserva":
-                    reserva = comp
-                    break
-
-        return None  # esta versión se resolverá con el método extendido de abajo
 
     def generar_evento_entrada_reserva_desde_estado(self, grupo, componente_fallado_id: str, tiempo_s: float, estado):
         for comp in self.obtener_componentes_grupo(grupo, estado):
@@ -449,14 +399,6 @@ class MotorReglas:
     # 5. SOBRECARGA Y PRIORIZACIÓN DE CARGA
     # ---------------------------------------------------------------------
 
-    def detectar_sobrecarga(self, demanda_kw: float, capacidad_kw: float) -> bool:
-        return demanda_kw > capacidad_kw
-
-    def calcular_porcentaje_sobrecarga(self, demanda_kw: float, capacidad_kw: float) -> float:
-        if capacidad_kw <= 0:
-            return 100.0
-        exceso = max(0.0, demanda_kw - capacidad_kw)
-        return (exceso / capacidad_kw) * 100.0
 
     def aplicar_prioridad_cargas(self, cargas: List[object], capacidad_disponible_kw: float) -> List[object]:
         """

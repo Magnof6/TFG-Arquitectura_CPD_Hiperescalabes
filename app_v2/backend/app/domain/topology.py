@@ -41,10 +41,10 @@ class TopologiaSistema:
             self._adyacencia_salida[conexion.origen_id].append(conexion)
             self._adyacencia_entrada[conexion.destino_id].append(conexion)
 
-    def agregar_nodo(self, nodo: object) -> None:
-        if not hasattr(nodo, "id"):
-            raise ValueError("El nodo debe tener atributo 'id'")
-        self.nodos[nodo.id] = nodo
+    # def agregar_nodo(self, nodo: object) -> None:
+    #     if not hasattr(nodo, "id"):
+    #         raise ValueError("El nodo debe tener atributo 'id'")
+    #     self.nodos[nodo.id] = nodo
 
     def agregar_conexion(self, conexion: ConexionElectrica) -> None:
         self.conexiones.append(conexion)
@@ -77,11 +77,11 @@ class TopologiaSistema:
     # 2. CONSULTAS BÁSICAS
     # ---------------------------------------------------------------------
 
-    def existe_nodo(self, nodo_id: str) -> bool:
-        return nodo_id in self.nodos
+    # def existe_nodo(self, nodo_id: str) -> bool:
+    #     return nodo_id in self.nodos
 
-    def obtener_nodo(self, nodo_id: str) -> Optional[object]:
-        return self.nodos.get(nodo_id)
+    # def obtener_nodo(self, nodo_id: str) -> Optional[object]:
+    #     return self.nodos.get(nodo_id)
 
     def obtener_conexion(self, origen_id: str, destino_id: str) -> Optional[ConexionElectrica]:
         """
@@ -92,17 +92,17 @@ class TopologiaSistema:
                 return conexion
         return None
 
-    def obtener_conexiones_desde(self, nodo_id: str) -> List[ConexionElectrica]:
-        return list(self._adyacencia_salida.get(nodo_id, []))
+    # def obtener_conexiones_desde(self, nodo_id: str) -> List[ConexionElectrica]:
+    #     return list(self._adyacencia_salida.get(nodo_id, []))
 
-    def obtener_conexiones_hacia(self, nodo_id: str) -> List[ConexionElectrica]:
-        return list(self._adyacencia_entrada.get(nodo_id, []))
+    # def obtener_conexiones_hacia(self, nodo_id: str) -> List[ConexionElectrica]:
+    #     return list(self._adyacencia_entrada.get(nodo_id, []))
 
-    def obtener_vecinos_salida(self, nodo_id: str) -> List[str]:
-        return [c.destino_id for c in self._adyacencia_salida.get(nodo_id, [])]
+    # def obtener_vecinos_salida(self, nodo_id: str) -> List[str]:
+    #     return [c.destino_id for c in self._adyacencia_salida.get(nodo_id, [])]
 
-    def obtener_vecinos_entrada(self, nodo_id: str) -> List[str]:
-        return [c.origen_id for c in self._adyacencia_entrada.get(nodo_id, [])]
+    # def obtener_vecinos_entrada(self, nodo_id: str) -> List[str]:
+    #     return [c.origen_id for c in self._adyacencia_entrada.get(nodo_id, [])]
 
     # ---------------------------------------------------------------------
     # 3. BÚSQUEDA DE RUTAS
@@ -169,85 +169,85 @@ class TopologiaSistema:
 
         return rutas
 
-    def buscar_primera_ruta(
-        self,
-        origen_id: str,
-        destino_id: str,
-        max_profundidad: int = 25,
-        solo_conexiones_activas: bool = False,
-    ) -> Optional[List[str]]:
-        rutas = self.buscar_rutas(
-            origen_id=origen_id,
-            destino_id=destino_id,
-            max_rutas=1,
-            max_profundidad=max_profundidad,
-            solo_conexiones_activas=solo_conexiones_activas,
-        )
-        return rutas[0] if rutas else None
+    # def buscar_primera_ruta(
+    #     self,
+    #     origen_id: str,
+    #     destino_id: str,
+    #     max_profundidad: int = 25,
+    #     solo_conexiones_activas: bool = False,
+    # ) -> Optional[List[str]]:
+    #     rutas = self.buscar_rutas(
+    #         origen_id=origen_id,
+    #         destino_id=destino_id,
+    #         max_rutas=1,
+    #         max_profundidad=max_profundidad,
+    #         solo_conexiones_activas=solo_conexiones_activas,
+    #     )
+    #     return rutas[0] if rutas else None
 
     # ---------------------------------------------------------------------
     # 4. VALIDACIÓN BÁSICA
     # ---------------------------------------------------------------------
 
-    def validar_conexiones(self) -> List[str]:
-        """
-        Comprueba que todas las conexiones referencian nodos existentes.
-        """
-        errores = []
+    # def validar_conexiones(self) -> List[str]:
+    #     """
+    #     Comprueba que todas las conexiones referencian nodos existentes.
+    #     """
+    #     errores = []
 
-        for conexion in self.conexiones:
-            if conexion.origen_id not in self.nodos:
-                errores.append(
-                    f"Conexión inválida: origen '{conexion.origen_id}' no existe"
-                )
-            if conexion.destino_id not in self.nodos:
-                errores.append(
-                    f"Conexión inválida: destino '{conexion.destino_id}' no existe"
-                )
+    #     for conexion in self.conexiones:
+    #         if conexion.origen_id not in self.nodos:
+    #             errores.append(
+    #                 f"Conexión inválida: origen '{conexion.origen_id}' no existe"
+    #             )
+    #         if conexion.destino_id not in self.nodos:
+    #             errores.append(
+    #                 f"Conexión inválida: destino '{conexion.destino_id}' no existe"
+    #             )
 
-        return errores
+    #     return errores
 
-    def nodos_sin_salidas(self) -> List[str]:
-        """
-        Útil para depuración: nodos sin conexiones salientes.
-        """
-        resultado = []
-        for nodo_id in self.nodos:
-            if len(self._adyacencia_salida.get(nodo_id, [])) == 0:
-                resultado.append(nodo_id)
-        return resultado
+    # def nodos_sin_salidas(self) -> List[str]:
+    #     """
+    #     Útil para depuración: nodos sin conexiones salientes.
+    #     """
+    #     resultado = []
+    #     for nodo_id in self.nodos:
+    #         if len(self._adyacencia_salida.get(nodo_id, [])) == 0:
+    #             resultado.append(nodo_id)
+    #     return resultado
 
-    def nodos_sin_entradas(self) -> List[str]:
-        """
-        Útil para detectar fuentes o nodos aislados.
-        """
-        resultado = []
-        for nodo_id in self.nodos:
-            if len(self._adyacencia_entrada.get(nodo_id, [])) == 0:
-                resultado.append(nodo_id)
-        return resultado
+    # def nodos_sin_entradas(self) -> List[str]:
+    #     """
+    #     Útil para detectar fuentes o nodos aislados.
+    #     """
+    #     resultado = []
+    #     for nodo_id in self.nodos:
+    #         if len(self._adyacencia_entrada.get(nodo_id, [])) == 0:
+    #             resultado.append(nodo_id)
+    #     return resultado
 
-    def detectar_nodos_aislados(self) -> List[str]:
-        """
-        Devuelve nodos sin entradas ni salidas.
-        """
-        aislados = []
-        for nodo_id in self.nodos:
-            sin_entradas = len(self._adyacencia_entrada.get(nodo_id, [])) == 0
-            sin_salidas = len(self._adyacencia_salida.get(nodo_id, [])) == 0
-            if sin_entradas and sin_salidas:
-                aislados.append(nodo_id)
-        return aislados
+    # def detectar_nodos_aislados(self) -> List[str]:
+    #     """
+    #     Devuelve nodos sin entradas ni salidas.
+    #     """
+    #     aislados = []
+    #     for nodo_id in self.nodos:
+    #         sin_entradas = len(self._adyacencia_entrada.get(nodo_id, [])) == 0
+    #         sin_salidas = len(self._adyacencia_salida.get(nodo_id, [])) == 0
+    #         if sin_entradas and sin_salidas:
+    #             aislados.append(nodo_id)
+    #     return aislados
 
     # ---------------------------------------------------------------------
     # 5. REPRESENTACIÓN
     # ---------------------------------------------------------------------
 
-    def resumen(self) -> dict:
-        return {
-            "num_nodos": len(self.nodos),
-            "num_conexiones": len(self.conexiones),
-            "nodos_sin_entradas": len(self.nodos_sin_entradas()),
-            "nodos_sin_salidas": len(self.nodos_sin_salidas()),
-            "nodos_aislados": len(self.detectar_nodos_aislados()),
-        }
+    # def resumen(self) -> dict:
+    #     return {
+    #         "num_nodos": len(self.nodos),
+    #         "num_conexiones": len(self.conexiones),
+    #         "nodos_sin_entradas": len(self.nodos_sin_entradas()),
+    #         "nodos_sin_salidas": len(self.nodos_sin_salidas()),
+    #         "nodos_aislados": len(self.detectar_nodos_aislados()),
+    #     }

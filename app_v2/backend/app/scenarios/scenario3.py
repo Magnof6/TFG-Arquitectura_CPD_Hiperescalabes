@@ -23,11 +23,157 @@ from app.domain.models import (
 )
 from app.domain.topology import TopologiaSistema
 from app.simulation.engine import EstadoSimulacion
-
+from typing import NamedTuple
 
 # =========================================================
 # HELPERS
 # =========================================================
+
+class BloqueITCreado(NamedTuple):
+    rmu: RMU
+    trafo: Transformador
+    ups_a: UPS
+    ups_b: UPS
+    sts: STS
+    bus: Busbar
+    sala: SalaIT
+    zona: ZonaIT
+    conexiones: list
+
+
+def _crear_bloque_it(modulo: int, bloque: int, es_reserva: bool, subestacion_id: str) -> BloqueITCreado:
+    """
+    Crea todos los componentes de un bloque IT (RMU, Transformador, UPS A/B,
+    STS, Busbar, Sala y Zona) junto con sus conexiones internas.
+    No incluye la conexión desde la RMU del módulo (esa la añade el caller).
+    """
+    m, b = modulo, bloque
+    estado_bloque = "reserva" if es_reserva else "activo"
+    demanda_kw = 1800 if not es_reserva else 0
+
+    rmu = RMU(
+        id=f"rmu_m{m}_{b}",
+        nombre=f"RMU módulo {m} bloque {b}",
+        tipo="RMU",
+        estado=estado_bloque,
+        criticidad=5,
+        tiempo_recuperacion_s=180,
+        es_reserva=es_reserva,
+        tension_kv=11,
+        corriente_nominal_a=630,
+        bloque_asociado=f"bloque_m{m}_{b}",
+        anillo_id=f"anillo_11kv_modulo_{m}",
+        modulo_id=f"modulo_it_{m}",
+    )
+
+    trafo = Transformador(
+        id=f"trafo_m{m}_{b}",
+        nombre=f"Trafo 11/0.415 módulo {m} bloque {b}",
+        tipo="Transformador",
+        estado=estado_bloque,
+        criticidad=5,
+        tiempo_recuperacion_s=300,
+        es_reserva=es_reserva,
+        subtipo="IT",
+        potencia_nominal_kva=4500,
+        tension_entrada_kv=11,
+        tension_salida_kv=0.415,
+        tecnologia="seco",
+        subestacion_id=subestacion_id,
+        bloque_id=f"bloque_m{m}_{b}",
+        modulo_id=f"modulo_it_{m}",
+        impedancia_pct=8,
+        grupo_vectorial="Dyn11",
+        refrigeracion="ANAN",
+    )
+
+    def _crear_ups(sufijo: str) -> UPS:
+        return UPS(
+            id=f"ups_m{m}_{b}_{sufijo}",
+            nombre=f"UPS {sufijo.upper()} módulo {m} bloque {b}",
+            tipo="UPS",
+            estado=estado_bloque,
+            criticidad=5,
+            tiempo_recuperacion_s=100,
+            es_reserva=es_reserva,
+            subtipo="IT",
+            tecnologia="VFI",
+            potencia_nominal_kva=2100,
+            potencia_nominal_kw=1890,
+            eficiencia_pct=95,
+            autonomia_min_eol=7.5,
+            vida_util_anios=10,
+            tiempo_conmutacion_ms=10,
+            bateria_tipo="Li-ion",
+            bms_monitorizado=True,
+        )
+
+    ups_a = _crear_ups("a")
+    ups_b = _crear_ups("b")
+
+    sts = STS(
+        id=f"sts_m{m}_{b}",
+        nombre=f"STS módulo {m} bloque {b}",
+        tipo="STS",
+        estado=estado_bloque,
+        criticidad=5,
+        tiempo_recuperacion_s=60,
+        es_reserva=es_reserva,
+        corriente_nominal_a=1600,
+        tiempo_transferencia_ms=10,
+        fuente_preferida=ups_a.id,
+        fuente_respaldo=ups_b.id,
+    )
+
+    bus = Busbar(
+        id=f"bus_m{m}_{b}",
+        nombre=f"Busbar módulo {m} bloque {b}",
+        tipo="Busbar",
+        estado="activo",
+        criticidad=4,
+        tiempo_recuperacion_s=60,
+        es_reserva=False,
+        tension_v=415,
+        corriente_nominal_a=6300,
+        capacidad_kw=4000,  # bloque ~4 MW
+    )
+
+    sala = SalaIT(
+        id=f"sala_m{m}_{b}",
+        nombre=f"Sala módulo {m} bloque {b}",
+        estado="alimentado" if not es_reserva else "degradada",
+        potencia_objetivo_kw=demanda_kw,
+        potencia_actual_kw=demanda_kw,
+        numero_zonas=1,
+        bloque_electrico_principal=f"bloque_m{m}_{b}",
+        bloque_electrico_respaldo=f"bloque_m{m}_7" if b != 7 else "",
+        criticidad=5,
+    )
+
+    zona = ZonaIT(
+        id=f"zona_m{m}_{b}",
+        nombre=f"Zona módulo {m} bloque {b}",
+        tipo="critica",
+        estado="alimentado" if not es_reserva else "sin_alimentacion",
+        demanda_kw=demanda_kw,
+        prioridad=5,
+        alimentacion_preferida=ups_a.id,
+        alimentacion_respaldo=ups_b.id,
+        sala_it_id=sala.id,
+    )
+
+    conexiones = [
+        ConexionElectrica(rmu.id, trafo.id),
+        ConexionElectrica(trafo.id, ups_a.id),
+        ConexionElectrica(trafo.id, ups_b.id),
+        ConexionElectrica(ups_a.id, sts.id),
+        ConexionElectrica(ups_b.id, sts.id, tipo="respaldo"),
+        ConexionElectrica(sts.id, bus.id),
+        ConexionElectrica(bus.id, sala.id),
+        ConexionElectrica(sala.id, zona.id),
+    ]
+
+    return BloqueITCreado(rmu, trafo, ups_a, ups_b, sts, bus, sala, zona, conexiones)
 
 def _crear_escenario_tillion_dc1():
     """
@@ -248,167 +394,28 @@ def _crear_escenario_tillion_dc1():
 
         for b in range(1, 8):
             es_reserva = (b == 7)
-            estado_bloque = "reserva" if es_reserva else "activo"
 
-            sala_id = f"sala_m{m}_{b}"
-            zona_id = f"zona_m{m}_{b}"
-
-            rmu = RMU(
-                id=f"rmu_m{m}_{b}",
-                nombre=f"RMU módulo {m} bloque {b}",
-                tipo="RMU",
-                estado=estado_bloque,
-                criticidad=5,
-                tiempo_recuperacion_s=180,
+            bloque = _crear_bloque_it(
+                modulo=m,
+                bloque=b,
                 es_reserva=es_reserva,
-                tension_kv=11,
-                corriente_nominal_a=630,
-                bloque_asociado=f"bloque_m{m}_{b}",
-                anillo_id=f"anillo_11kv_modulo_{m}",
-                modulo_id=f"modulo_it_{m}",
-            )
-
-            trafo = Transformador(
-                id=f"trafo_m{m}_{b}",
-                nombre=f"Trafo 11/0.415 módulo {m} bloque {b}",
-                tipo="Transformador",
-                estado=estado_bloque,
-                criticidad=5,
-                tiempo_recuperacion_s=300,
-                es_reserva=es_reserva,
-                subtipo="IT",
-                potencia_nominal_kva=4500,
-                tension_entrada_kv=11,
-                tension_salida_kv=0.415,
-                tecnologia="seco",
                 subestacion_id=set_dc1.id,
-                bloque_id=f"bloque_m{m}_{b}",
-                modulo_id=f"modulo_it_{m}",
-                impedancia_pct=8,
-                grupo_vectorial="Dyn11",
-                refrigeracion="ANAN",
-                
             )
 
-            # En el texto, cada bloque IT tiene 2 UPS en paralelo
-            ups_a = UPS(
-                id=f"ups_m{m}_{b}_a",
-                nombre=f"UPS A módulo {m} bloque {b}",
-                tipo="UPS",
-                estado=estado_bloque,
-                criticidad=5,
-                tiempo_recuperacion_s=100,
-                es_reserva=es_reserva,
-                subtipo="IT",
-                tecnologia="VFI",
-                potencia_nominal_kva=2100,
-                potencia_nominal_kw=1890,
-                eficiencia_pct=95,
-                autonomia_min_eol=7.5,
-                vida_util_anios=10,
-                tiempo_conmutacion_ms=10,
-                bateria_tipo="Li-ion",
-                bms_monitorizado=True,
-            )
-
-            ups_b = UPS(
-                id=f"ups_m{m}_{b}_b",
-                nombre=f"UPS B módulo {m} bloque {b}",
-                tipo="UPS",
-                estado=estado_bloque,
-                criticidad=5,
-                tiempo_recuperacion_s=100,
-                es_reserva=es_reserva,
-                subtipo="IT",
-                tecnologia="VFI",
-                potencia_nominal_kva=2100,
-                potencia_nominal_kw=1890,
-                eficiencia_pct=95,
-                autonomia_min_eol=7.5,
-                vida_util_anios=10,
-                tiempo_conmutacion_ms=10,
-                bateria_tipo="Li-ion",
-                bms_monitorizado=True,
-            )
-
-            sts = STS(
-                id=f"sts_m{m}_{b}",
-                nombre=f"STS módulo {m} bloque {b}",
-                tipo="STS",
-                estado=estado_bloque,
-                criticidad=5,
-                tiempo_recuperacion_s=60,
-                es_reserva=es_reserva,
-                corriente_nominal_a=1600,
-                tiempo_transferencia_ms=10,
-                fuente_preferida=ups_a.id,
-                fuente_respaldo=ups_b.id,
-            )
-
-            bus = Busbar(
-                id=f"bus_m{m}_{b}",
-                nombre=f"Busbar módulo {m} bloque {b}",
-                tipo="Busbar",
-                estado="activo",
-                criticidad=4,
-                tiempo_recuperacion_s=60,
-                es_reserva=False,
-                tension_v=415,
-                corriente_nominal_a=6300,
-                capacidad_kw=4000,  # bloque ~4 MW
-            )
-
-
-            # Para simplificar la simulación, solo damos carga a los 6 activos
-            demanda_kw = 1800 if not es_reserva else 0
-
-            sala = SalaIT(
-                id=sala_id,
-                nombre=f"Sala módulo {m} bloque {b}",
-                estado="alimentado" if not es_reserva else "degradada",
-                potencia_objetivo_kw=demanda_kw,
-                potencia_actual_kw=demanda_kw,
-                numero_zonas=1,
-                bloque_electrico_principal=f"bloque_m{m}_{b}",
-                bloque_electrico_respaldo=f"bloque_m{m}_7" if b != 7 else "",
-                criticidad=5,
-            )
-
-            zona = ZonaIT(
-                id=zona_id,
-                nombre=f"Zona módulo {m} bloque {b}",
-                tipo="critica",
-                estado="alimentado" if not es_reserva else "sin_alimentacion",
-                demanda_kw=demanda_kw,
-                prioridad=5,
-                alimentacion_preferida=ups_a.id,
-                alimentacion_respaldo=ups_b.id,
-                sala_it_id=sala_id,
-            )
-
-            for obj in [rmu, trafo, ups_a, ups_b, sts, bus]:
+            for obj in [bloque.rmu, bloque.trafo, bloque.ups_a, bloque.ups_b, bloque.sts, bloque.bus]:
                 nodos[obj.id] = obj
 
-            nodos[sala.id] = sala
-            nodos[zona.id] = zona
-            salas_it[sala.id] = sala
-            zonas_it[zona.id] = zona
+            nodos[bloque.sala.id] = bloque.sala
+            nodos[bloque.zona.id] = bloque.zona
+            salas_it[bloque.sala.id] = bloque.sala
+            zonas_it[bloque.zona.id] = bloque.zona
 
-            trafos_modulo.append(trafo.id)
-            rmus_modulo.append(rmu.id)
-            sts_modulo.append(sts.id)
+            trafos_modulo.append(bloque.trafo.id)
+            rmus_modulo.append(bloque.rmu.id)
+            sts_modulo.append(bloque.sts.id)
 
-            conexiones.extend([
-                ConexionElectrica(rmu_modulo.id, rmu.id),
-                ConexionElectrica(rmu.id, trafo.id),
-                ConexionElectrica(trafo.id, ups_a.id),
-                ConexionElectrica(trafo.id, ups_b.id),
-                ConexionElectrica(ups_a.id, sts.id),
-                ConexionElectrica(ups_b.id, sts.id, tipo="respaldo"),
-                ConexionElectrica(sts.id, bus.id),
-                ConexionElectrica(bus.id, sala.id),
-                ConexionElectrica(sala.id, zona.id),
-            ])
+            conexiones.append(ConexionElectrica(rmu_modulo.id, bloque.rmu.id))
+            conexiones.extend(bloque.conexiones)
 
         grupos[f"grupo_trafos_modulo_{m}"] = GrupoRedundancia(
             id=f"grupo_trafos_modulo_{m}",
@@ -489,6 +496,102 @@ def _crear_escenario_tillion_dc1():
 
     return estado
 
+# =========================================================
+# FACTORIES DE EVENTOS
+# =========================================================
+
+def _fallo(id, objetivo_id, objetivo_tipo, descripcion, causa, tiempo_s, duracion_s, severidad):
+    return FalloComponente(
+        id=id,
+        tipo="FalloComponente",
+        tiempo_s=tiempo_s,
+        duracion_s=duracion_s,
+        objetivo_id=objetivo_id,
+        objetivo_tipo=objetivo_tipo,
+        descripcion=descripcion,
+        severidad=severidad,
+        causa=causa,
+        nuevo_estado="fallado",
+    )
+
+
+def _recuperacion(id, objetivo_id, objetivo_tipo, descripcion, causa, tiempo_s, duracion_s, severidad):
+    return RecuperacionComponente(
+        id=id,
+        tipo="RecuperacionComponente",
+        tiempo_s=tiempo_s,
+        duracion_s=duracion_s,
+        objetivo_id=objetivo_id,
+        objetivo_tipo=objetivo_tipo,
+        descripcion=descripcion,
+        severidad=severidad,
+        causa=causa,
+        nuevo_estado="activo",
+    )
+
+
+def _parada_generador(id, generador_id, descripcion, motivo, tiempo_s, duracion_s, severidad):
+    return ParadaGenerador(
+        id=id,
+        tipo="ParadaGenerador",
+        tiempo_s=tiempo_s,
+        duracion_s=duracion_s,
+        objetivo_id=generador_id,
+        objetivo_tipo="Generador",
+        descripcion=descripcion,
+        severidad=severidad,
+        generador_id=generador_id,
+        motivo=motivo,
+    )
+
+
+def _sobrecarga(id, descripcion, tiempo_s, duracion_s, severidad, carga_kw, capacidad_disponible_kw):
+    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
+    return Sobrecarga(
+        id=id,
+        tipo="Sobrecarga",
+        tiempo_s=tiempo_s,
+        duracion_s=duracion_s,
+        objetivo_id="dc1",
+        objetivo_tipo="Sistema",
+        descripcion=descripcion,
+        severidad=severidad,
+        carga_kw=carga_kw,
+        capacidad_disponible_kw=capacidad_disponible_kw,
+        porcentaje_sobrecarga=porcentaje_sobrecarga,
+    )
+
+
+def _conmutacion_fallida(id, objetivo_id, fuente_origen, fuente_destino, descripcion, tiempo_s, duracion_s, severidad, tiempo_transferencia_ms=10.0):
+    return ConmutacionFuente(
+        id=id,
+        tipo="ConmutacionFuente",
+        tiempo_s=tiempo_s,
+        duracion_s=duracion_s,
+        objetivo_id=objetivo_id,
+        objetivo_tipo="ups",
+        descripcion=descripcion,
+        severidad=severidad,
+        fuente_origen=fuente_origen,
+        fuente_destino=fuente_destino,
+        tiempo_transferencia_ms=tiempo_transferencia_ms,
+        exito=False,
+    )
+
+
+def _salida_reserva(id, objetivo_id, componente_reserva_id, descripcion, motivo, tiempo_s, duracion_s, severidad, objetivo_tipo="transformador"):
+    return SalidaReserva(
+        id=id,
+        tipo="SalidaReserva",
+        tiempo_s=tiempo_s,
+        duracion_s=duracion_s,
+        objetivo_id=objetivo_id,
+        objetivo_tipo=objetivo_tipo,
+        descripcion=descripcion,
+        severidad=severidad,
+        componente_reserva_id=componente_reserva_id,
+        motivo=motivo,
+    )
 
 # =========================================================
 # ESCENARIOS
@@ -501,18 +604,7 @@ def escenario_dc1_sin_eventos():
 def escenario_dc1_fallo_emf():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_emf",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        )
+        _fallo("fallo_emf", "emf_1", "EMF", "Fallo del EMF", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
@@ -520,36 +612,14 @@ def escenario_dc1_fallo_emf():
 def escenario_dc1_fallo_set_dc1():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_set_dc1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="set_dc1_66_11",
-            objetivo_tipo="Subestacion",
-            descripcion="Fallo de la SET DC_1 66/11 kV",
-            severidad=5,
-            causa="Fallo interno",
-            nuevo_estado="fallado",
-        )
+        _fallo("fallo_set_dc1", "set_dc1_66_11", "Subestacion", "Fallo de la SET DC_1 66/11 kV", causa="Fallo interno", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_barra_11kv():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_barra_11kv_dc1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="barra_11kv_dc1",
-            objetivo_tipo="Busbar",
-            descripcion="Fallo de la barra 11 kV del edificio DC_1",
-            severidad=5,
-            causa="Fallo interno en distribución 11 kV",
-            nuevo_estado="fallado",
-        )
+        _fallo("fallo_barra_11Kv_dc1", "barra_11kv_dc1", "Busbar", "Fallo de la barra 11 kV del edificio DC_1", causa="Fallo interno en distribución 11 kV", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
@@ -557,78 +627,23 @@ def escenario_dc1_fallo_barra_11kv():
 def escenario_dc1_fallo_trafo_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_trafo_m1_1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="trafo_m1_1",
-            objetivo_tipo="Transformador",
-            descripcion="Fallo del trafo del bloque m1_1",
-            severidad=5,
-            causa="Fallo interno",
-            nuevo_estado="fallado",
-        )
+        _fallo("fallo_trafo_m1_1", "trafo_m1_1", "Transformador", "Fallo del trafo del bloque m1_1", causa="Fallo interno", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_y_recuperacion_emf():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_emf",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        ),
-        RecuperacionComponente(
-            id="recuperacion_emf",
-            tipo="RecuperacionComponente",
-            tiempo_s=100,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Recuperación del EMF",
-            severidad=2,
-            causa="Restablecimiento de infraestructura AT",
-            nuevo_estado="activo",
-        ),
+        _fallo("fallo_emf", "emf_1", "EMF", "Fallo del EMF", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
+        _recuperacion("recuperacion_emf", "emf_1", "EMF", "Recuperación del EMF", causa="Restablecimiento de infraestructura AT", tiempo_s=100, duracion_s=0, severidad=2),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_emf_y_parada_generador():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_emf",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        ),
-        ParadaGenerador(
-            id="parada_gen_dc1_1",
-            tipo="ParadaGenerador",
-            tiempo_s=60,
-            duracion_s=0,
-            objetivo_id="gen_dc1_1",
-            objetivo_tipo="Generador",
-            descripcion="Parada del generador gen_dc1_1",
-            severidad=3,
-            generador_id="gen_dc1_1",
-            motivo = "fallo al suministrar diesel al equipo"
-        ),
+        _fallo("fallo_emf", "emf_1", "EMF", "Fallo del EMF", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
+        _parada_generador("parada_gen_dc1_1", "gen_dc1_1", "Parada del generador gen_dc1_1", motivo="fallo al suministrar diesel al equipo", tiempo_s=60, duracion_s=0, severidad=3),
     ]
     return estado, eventos
 
@@ -637,22 +652,9 @@ def escenario_dc1_sobrecarga_simple():
 
     carga_kw = 40000.0
     capacidad_disponible_kw = 30000.0
-    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
 
     eventos = [
-        Sobrecarga(
-            id="sobrecarga_dc1_simple",
-            tipo="Sobrecarga",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="dc1",
-            objetivo_tipo="Sistema",
-            descripcion="Sobrecarga simple del sistema DC_1",
-            severidad=4,
-            carga_kw=carga_kw,
-            capacidad_disponible_kw=capacidad_disponible_kw,
-            porcentaje_sobrecarga=porcentaje_sobrecarga,
-        ),
+        _sobrecarga("sobrecarga_dc1_simple", "Sobrecarga simple del sistema DC_1", tiempo_s=10, duracion_s=0, severidad=4, carga_kw=carga_kw, capacidad_disponible_kw=capacidad_disponible_kw)
     ]
     return estado, eventos
 
@@ -661,46 +663,11 @@ def escenario_dc1_sobrecarga_sin_respaldo_local():
 
     carga_kw = 40000.0
     capacidad_disponible_kw = 30000.0
-    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
 
     eventos = [
-        FalloComponente(
-            id="fallo_ups_m3_5_b",
-            tipo="FalloComponente",
-            tiempo_s=5,
-            duracion_s=0,
-            objetivo_id="ups_m3_5_b",
-            objetivo_tipo="UPS",
-            descripcion="Fallo de UPS B del bloque m3_5",
-            severidad=4,
-            causa="Fallo previo en respaldo local",
-            nuevo_estado="fallado",
-        ),
-        FalloComponente(
-            id="fallo_ups_m3_6_b",
-            tipo="FalloComponente",
-            tiempo_s=5,
-            duracion_s=0,
-            objetivo_id="ups_m3_6_b",
-            objetivo_tipo="UPS",
-            descripcion="Fallo de UPS B del bloque m3_6",
-            severidad=4,
-            causa="Fallo previo en respaldo local",
-            nuevo_estado="fallado",
-        ),
-        Sobrecarga(
-            id="sobrecarga_dc1_sin_respaldo_local",
-            tipo="Sobrecarga",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="dc1",
-            objetivo_tipo="Sistema",
-            descripcion="Sobrecarga del sistema DC_1 sin respaldo local en algunos bloques",
-            severidad=4,
-            carga_kw=carga_kw,
-            capacidad_disponible_kw=30000.0,
-            porcentaje_sobrecarga=porcentaje_sobrecarga,
-        ),
+        _fallo("fallo_ups_m3_5_b", "ups_m3_5_b", "UPS", "Fallo de UPS B del bloque m3_5", causa="Fallo previo en respaldo local", tiempo_s=5, duracion_s=0, severidad=4),
+        _fallo("fallo_ups_m3_6_b", "ups_m3_6_b", "UPS", "Fallo de UPS B del bloque m3_6", causa="Fallo previo en respaldo local", tiempo_s=5, duracion_s=0, severidad=4),
+        _sobrecarga("sobrecarga_dc1_sin_respaldo_local", "Sobrecarga del sistema DC_1 sin respaldo local en algunos bloques", tiempo_s=10, duracion_s=0, severidad=4, carga_kw=carga_kw, capacidad_disponible_kw=capacidad_disponible_kw)
     ]
     return estado, eventos
 
@@ -709,34 +676,10 @@ def escenario_dc1_fallo_emf_y_sobrecarga():
 
     carga_kw = 40000.0
     capacidad_disponible_kw = 28000.0
-    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
 
     eventos = [
-        FalloComponente(
-            id="fallo_emf_sobrecarga",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF previo a sobrecarga",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        ),
-        Sobrecarga(
-            id="sobrecarga_dc1_post_emf",
-            tipo="Sobrecarga",
-            tiempo_s=30,
-            duracion_s=0,
-            objetivo_id="dc1",
-            objetivo_tipo="Sistema",
-            descripcion="Déficit de capacidad de generación de emergencia tras fallo del EMF (sobrecarga del sistema DC_1)",
-            severidad=5,
-            carga_kw=carga_kw,
-            capacidad_disponible_kw=capacidad_disponible_kw,
-            porcentaje_sobrecarga=porcentaje_sobrecarga,
-        ),
+        _fallo("fallo_emf_sobrecarga", "emf_1", "EMF", "Fallo del EMF previo a sobrecarga", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
+        _sobrecarga("sobrecarga_dc1_post_emf", "Déficit de capacidad de generación de emergencia tras fallo del EMF (sobrecarga del sistema DC_1)", tiempo_s=30, duracion_s=0, severidad=5, carga_kw=carga_kw, capacidad_disponible_kw=capacidad_disponible_kw)
     ]
     return estado, eventos
 
@@ -745,90 +688,20 @@ def escenario_dc1_fallo_emf_parada_generadores_y_sobrecarga():
 
     carga_kw = 40000.0
     capacidad_disponible_kw = 22000.0
-    porcentaje_sobrecarga = ((carga_kw - capacidad_disponible_kw) / capacidad_disponible_kw) * 100.0
 
     eventos = [
-        FalloComponente(
-            id="fallo_emf_generadores_sobrecarga",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF previo a sobrecarga severa",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        ),
-        ParadaGenerador(
-            id="parada_gen_dc1_1_sobrecarga",
-            tipo="ParadaGenerador",
-            tiempo_s=40,
-            duracion_s=0,
-            objetivo_id="gen_dc1_1",
-            objetivo_tipo="Generador",
-            descripcion="Parada del generador gen_dc1_1",
-            severidad=4,
-            generador_id="gen_dc1_1",
-            motivo="Fallo durante operación en respaldo",
-        ),
-        ParadaGenerador(
-            id="parada_gen_dc1_2_sobrecarga",
-            tipo="ParadaGenerador",
-            tiempo_s=40,
-            duracion_s=0,
-            objetivo_id="gen_dc1_2",
-            objetivo_tipo="Generador",
-            descripcion="Parada del generador gen_dc1_2",
-            severidad=4,
-            generador_id="gen_dc1_2",
-            motivo="Fallo durante operación en respaldo",
-        ),
-        ParadaGenerador(
-            id="parada_gen_dc1_3_sobrecarga",
-            tipo="ParadaGenerador",
-            tiempo_s=40,
-            duracion_s=0,
-            objetivo_id="gen_dc1_3",
-            objetivo_tipo="Generador",
-            descripcion="Parada del generador gen_dc1_3",
-            severidad=4,
-            generador_id="gen_dc1_3",
-            motivo="Fallo durante operación en respaldo",
-        ),
-        Sobrecarga(
-            id="sobrecarga_dc1_severa",
-            tipo="Sobrecarga",
-            tiempo_s=50,
-            duracion_s=0,
-            objetivo_id="dc1",
-            objetivo_tipo="Sistema",
-            descripcion="Sobrecarga severa del sistema DC_1 con menos generadores disponibles",
-            severidad=5,
-            carga_kw=carga_kw,
-            capacidad_disponible_kw=capacidad_disponible_kw,
-            porcentaje_sobrecarga=porcentaje_sobrecarga,
-        ),
+        _fallo("fallo_emf_generadores_sobrecarga", "emf_1", "EMF", "Fallo del EMF previo a sobrecarga severa", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
+        _parada_generador("parada_gen_dc1_1_sobrecarga", "gen_dc1_1", "Parada del generador gen_dc1_1", motivo="Fallo durante operación en respaldo", tiempo_s=40, duracion_s=0, severidad=4),
+        _parada_generador("parada_gen_dc1_2_sobrecarga", "gen_dc1_2", "Parada del generador gen_dc1_2", motivo="Fallo durante operación en respaldo", tiempo_s=40, duracion_s=0, severidad=4),
+        _parada_generador("parada_gen_dc1_3_sobrecarga", "gen_dc1_3", "Parada del generador gen_dc1_3", motivo="Fallo durante operación en respaldo", tiempo_s=40, duracion_s=0, severidad=4),
+        _sobrecarga("sobrecarga_dc1_severa", "Sobrecarga severa del sistema DC_1 con menos generadores disponibles", tiempo_s=50, duracion_s=0, severidad=5, carga_kw=carga_kw, capacidad_disponible_kw=capacidad_disponible_kw)
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_conmutacion_ups():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        ConmutacionFuente(
-            id="fallo_conmutacion_ups_m1_1_a",
-            tipo="ConmutacionFuente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="ups_m1_1_a",
-            objetivo_tipo="ups",
-            descripcion="Fallo de conmutación a UPS ups_m1_1_a",
-            severidad=5,
-            fuente_origen="red",
-            fuente_destino="ups_m1_1_a",
-            tiempo_transferencia_ms=10.0,
-            exito=False,
-        ),
+        _conmutacion_fallida("fallo_conmutacion_ups_m1_1_a", "ups_m1_1_a", "red", "ups_m1_1_a", "Fallo de conmutación a UPS ups_m1_1_a", tiempo_s=10, duracion_s=0, severidad=5, tiempo_transferencia_ms=10.0),
     ]
     return estado, eventos
 
@@ -839,18 +712,7 @@ def escenario_dc1_salida_reserva_trafo():
     estado.componentes["trafo_m1_7"].estado = "activo"
 
     eventos = [
-        SalidaReserva(
-            id="salida_reserva_trafo_m1_7",
-            tipo="SalidaReserva",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="grupo_trafos_modulo_1",
-            objetivo_tipo="transformador",
-            descripcion="Salida de reserva del trafo m1_7",
-            severidad=2,
-            componente_reserva_id="trafo_m1_7",
-            motivo ="aun no se ha establecido un motivo pare este escenario"
-        ),
+        _salida_reserva("salida_reserva_trafo_m1_7", "grupo_trafos_modulo_1", "trafo_m1_7", "Salida de reserva del trafo m1_7", motivo="Trafo anterior se ha reestablecido y ya no es necesario mantener la reserva activa", tiempo_s=10, duracion_s=0, severidad=2),
     ]
     return estado, eventos
 
@@ -858,166 +720,41 @@ def escenario_dc1_salida_reserva_trafo():
 def escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_emf",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        ),
-        ConmutacionFuente(
-            id="fallo_conmutacion_ups_m1_1_a",
-            tipo="ConmutacionFuente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="ups_m1_1_a",
-            objetivo_tipo="ups",
-            descripcion="Fallo de conmutación a UPS ups_m1_1_a del bloque m1_1",
-            severidad=5,
-            fuente_origen="red",
-            fuente_destino="ups_m1_1_a",
-            tiempo_transferencia_ms=10.0,
-            exito=False,
-        ),
+        _fallo("fallo_emf", "emf_1", "EMF", "Fallo del EMF", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
+        _conmutacion_fallida("fallo_conmutacion_ups_m1_1_a", "ups_m1_1_a", "red", "ups_m1_1_a", "Fallo de conmutación a UPS ups_m1_1_a del bloque m1_1", tiempo_s=10, duracion_s=0, severidad=5, tiempo_transferencia_ms=10.0),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_emf_y_fallo_conmutacion_ups_a_y_ups_b_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_emf",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF",
-            severidad=5,
-            causa="Fallo en infraestructura AT",
-            nuevo_estado="fallado",
-        ),
-        ConmutacionFuente(
-            id="fallo_conmutacion_ups_m1_1_a",
-            tipo="ConmutacionFuente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="ups_m1_1_a",
-            objetivo_tipo="ups",
-            descripcion="Fallo de conmutación a UPS ups_m1_1_a del bloque m1_1",
-            severidad=5,
-            fuente_origen="red",
-            fuente_destino="ups_m1_1_a",
-            tiempo_transferencia_ms=10.0,
-            exito=False,
-        ),
-        FalloComponente(
-            id="fallo_ups_m1_1_b",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="ups_m1_1_b",
-            objetivo_tipo="UPS",
-            descripcion="Fallo de UPS B del bloque m1_1",
-            severidad=5,
-            causa="Fallo interno UPS de respaldo",
-            nuevo_estado="fallado",
-        ),
+        _fallo("fallo_emf", "emf_1", "EMF", "Fallo del EMF", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5),
+        _conmutacion_fallida("fallo_conmutacion_ups_m1_1_a", "ups_m1_1_a", "red", "ups_m1_1_a", "Fallo de conmutación a UPS ups_m1_1_a del bloque m1_1", tiempo_s=10, duracion_s=0, severidad=5, tiempo_transferencia_ms=10.0),
+        _fallo("fallo_ups_m1_1_b", "ups_m1_1_b", "UPS", "Fallo de UPS B del bloque m1_1", causa="Fallo interno UPS de respaldo", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_sts_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_sts_m1_1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="sts_m1_1",
-            objetivo_tipo="STS",
-            descripcion="Fallo del STS del bloque m1_1",
-            severidad=5,
-            causa="Fallo interno STS",
-            nuevo_estado="fallado",
-        ),
+        _fallo("fallo_sts_m1_1", "sts_m1_1", "STS", "Fallo del STS del bloque m1_1", causa="Fallo interno STS", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_doble_sts_modulo():
     estado= _crear_escenario_tillion_dc1()
     eventos=[
-        FalloComponente(
-            id="fallo_sts_m1_1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="sts_m1_1",
-            objetivo_tipo="STS",
-            descripcion="Fallo del STS del bloque m1_1",
-            causa = "Fallo interno STS",
-            severidad="alta",
-            nuevo_estado="fallado"
-        ),
-        FalloComponente(
-            id="fallo_sts_m1_2",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="sts_m1_2",
-            objetivo_tipo="STS",
-            descripcion="Fallo del STS del bloque m1_2",
-            causa = "Fallo interno STS",
-            severidad="alta",
-            nuevo_estado="fallado"
-        ),
+        _fallo("fallo_sts_m1_1", "sts_m1_1", "STS", "Fallo del STS del bloque m1_1", causa="Fallo interno STS", tiempo_s=10, duracion_s=0, severidad=5),
+        _fallo("fallo_sts_m1_2", "sts_m1_2", "STS", "Fallo del STS del bloque m1_2", causa="Fallo interno STS", tiempo_s=10, duracion_s=0, severidad=5),
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_doble_sts_y_emf():
     estado = _crear_escenario_tillion_dc1()
     eventos=[
-        FalloComponente(
-            id="fallo_sts_m1_1",
-            tipo="FalloComponente",
-            tiempo_s=5,
-            duracion_s=0,
-            objetivo_id="sts_m1_1",
-            objetivo_tipo="STS",
-            descripcion="Fallo del STS del bloque m1_1",
-            causa = "Fallo interno STS",
-            severidad="alta",
-            nuevo_estado="fallado"
-        ),
-        FalloComponente(
-            id="fallo_sts_m1_2",
-            tipo="FalloComponente",
-            tiempo_s=5,
-            duracion_s=0,
-            objetivo_id="sts_m1_2",
-            objetivo_tipo="STS",
-            descripcion="Fallo del STS del bloque m1_2",
-            causa = "Fallo interno STS",
-            severidad="alta",
-            nuevo_estado="fallado"
-        ),
-        FalloComponente(
-            id="fallo_emf",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="emf_1",
-            objetivo_tipo="EMF",
-            descripcion="Fallo del EMF tras fallo doble de STS",
-            causa = "Fallo en infraestructura AT",
-            severidad="critica",
-            nuevo_estado="fallado"
-        ),
+        _fallo("fallo_sts_m1_1", "sts_m1_1", "STS", "Fallo del STS del bloque m1_1", causa="Fallo interno STS", tiempo_s=5, duracion_s=0, severidad=5),
+        _fallo("fallo_sts_m1_2", "sts_m1_2", "STS", "Fallo del STS del bloque m1_2", causa="Fallo interno STS", tiempo_s=5, duracion_s=0, severidad=5),
+        _fallo("fallo_emf", "emf_1", "EMF", "Fallo del EMF tras fallo doble de STS", causa="Fallo en infraestructura AT", tiempo_s=10, duracion_s=0, severidad=5)
     ]
     return estado, eventos
 
@@ -1025,36 +762,14 @@ def escenario_dc1_fallo_doble_sts_y_emf():
 def escenario_dc1_fallo_rmu_modulo():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_rmu_modulo_1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="rmu_modulo_1",
-            objetivo_tipo="RMU",
-            descripcion="Fallo de la RMU del módulo 1",
-            severidad=5,
-            causa="Fallo en distribución 11 kV del módulo 1",
-            nuevo_estado="fallado",
-        ),
+        _fallo("fallo_rmu_modulo_1", "rmu_modulo_1", "RMU", "Fallo de la RMU del módulo 1", causa="Fallo en distribución 11 kV del módulo 1", tiempo_s=10, duracion_s=0, severidad=5)
     ]
     return estado, eventos
 
 def escenario_dc1_fallo_rmu_bloque():
     estado = _crear_escenario_tillion_dc1()
     eventos = [
-        FalloComponente(
-            id="fallo_rmu_m1_1",
-            tipo="FalloComponente",
-            tiempo_s=10,
-            duracion_s=0,
-            objetivo_id="rmu_m1_1",
-            objetivo_tipo="RMU",
-            descripcion="Fallo de la RMU del bloque m1_1",
-            severidad=5,
-            causa="Fallo en distribución 11 kV del bloque m1_1",
-            nuevo_estado="fallado",
-        ),
+        _fallo("fallo_rmu_m1_1", "rmu_m1_1", "RMU", "Fallo de la RMU del bloque m1_1", causa="Fallo en distribución 11 kV del bloque m1_1", tiempo_s=10, duracion_s=0, severidad=5)
     ]
     return estado, eventos
 

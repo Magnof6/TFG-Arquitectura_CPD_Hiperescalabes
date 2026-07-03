@@ -1,6 +1,6 @@
 #PROCESADOR DE EVENTOS
 from __future__ import annotations
-from typing import Optional, List, Dict
+from typing import List
 
 import app.domain.models
 models = app.domain.models

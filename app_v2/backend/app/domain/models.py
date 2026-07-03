@@ -1,7 +1,7 @@
 #OBJETOS, CARGAS, SALAS, EVENTOS, CONEXIONES
 
 from dataclasses import dataclass,field
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 ##########COMPONENTES ELÉCTRICOS########
 
@@ -15,11 +15,11 @@ class ObjetoElectrico:
     tiempo_recuperacion_s: float #SEGUNDOS
     es_reserva: bool
 
-    def es_operativo(self) -> bool:
-        return self.estado in {"activo", "reserva"} #Utilizamos un conjunto porque no importa el orden y evita duplicados
+    # def es_operativo(self) -> bool:
+    #     return self.estado in {"activo", "reserva"} #Utilizamos un conjunto porque no importa el orden y evita duplicados
     
-    def aporta_capacidad(self) -> bool:
-        return self.estado == "activo"
+    # def aporta_capacidad(self) -> bool:
+    #     return self.estado == "activo"
     
 @dataclass
 class RedElectrica(ObjetoElectrico):
@@ -56,14 +56,14 @@ class Subestacion(ObjetoElectrico):
     bloques_asociados_ids: List[str] = field(default_factory=list) #Bloque eléctrico, es un conjunto de componentes eléctricos que alimentan una zona o sala específica del CPD. Puede incluir transformadores, cuadros eléctricos, RMU y otros dispositivos
     
 
-@dataclass
-class LineaElectrica(ObjetoElectrico):
-    tension_kv: float
-    capacidad_mva: float
-    num_circuitos: int
-    origen: str
-    destino: str
-    longitud_m: float
+# @dataclass
+# class LineaElectrica(ObjetoElectrico):
+#     tension_kv: float
+#     capacidad_mva: float
+#     num_circuitos: int
+#     origen: str
+#     destino: str
+#     longitud_m: float
 
 @dataclass
 class Transformador(ObjetoElectrico):
@@ -111,13 +111,13 @@ class UPS(ObjetoElectrico):
     tiempo_inicio_bateria_s: Optional[float] = None
     transferencia_bloqueada: bool = False
 
-@dataclass
-class BateriaUPS(ObjetoElectrico):
-    tecnologia: str              # ion-litio
-    autonomia_min_eol: float
-    vida_util_anios: float
-    temperatura_operacion_c: float
-    bms_activo: bool
+# @dataclass
+# class BateriaUPS(ObjetoElectrico):
+#     tecnologia: str              # ion-litio
+#     autonomia_min_eol: float
+#     vida_util_anios: float
+#     temperatura_operacion_c: float
+#     bms_activo: bool
 
 @dataclass
 class RMU(ObjetoElectrico):
@@ -138,13 +138,13 @@ class STS(ObjetoElectrico): #Static Transfer Switch, es un dispositivo que permi
     fuente_respaldo: str
     fuente_actual: Optional[str] = None
 
-@dataclass
-class CuadroElectrico(ObjetoElectrico):
-    subtipo: str                 # MT, BT, input switchboard
-    tension_kv: float
-    corriente_nominal_a: float
-    corriente_cortocircuito_ka: float
-    forma_segregacion: str
+# @dataclass
+# class CuadroElectrico(ObjetoElectrico):
+#     subtipo: str                 # MT, BT, input switchboard
+#     tension_kv: float
+#     corriente_nominal_a: float
+#     corriente_cortocircuito_ka: float
+#     forma_segregacion: str
 
 @dataclass
 class Busbar(ObjetoElectrico):
@@ -153,23 +153,23 @@ class Busbar(ObjetoElectrico):
     capacidad_kw: float
 
 ############ CARGAS, SALAS, ZONAS ############
-@dataclass
-class BloqueElectrico:
-    id: str
-    nombre: str
-    subtipo: str                 # IT, mecánico, landlord
-    estado: str
-    capacidad_kw: float
-    es_reserva: bool
-    criticidad: int
-    componentes: list[str]
-    cargas_asociadas: list[str]
+# @dataclass
+# class BloqueElectrico:
+#     id: str
+#     nombre: str
+#     subtipo: str                 # IT, mecánico, landlord
+#     estado: str
+#     capacidad_kw: float
+#     es_reserva: bool
+#     criticidad: int
+#     componentes: list[str]
+#     cargas_asociadas: list[str]
     
-    modulo_id: Optional[str] = None
-    rmu_id: Optional[str] = None
-    transformador_id: Optional[str] = None
-    ups_ids: List[str] = field(default_factory=list)
-    sts_ids: List[str] = field(default_factory=list)
+#     modulo_id: Optional[str] = None
+#     rmu_id: Optional[str] = None
+#     transformador_id: Optional[str] = None
+#     ups_ids: List[str] = field(default_factory=list)
+#     sts_ids: List[str] = field(default_factory=list)
 
 @dataclass
 class SalaIT:
@@ -208,8 +208,8 @@ class ConexionElectrica:
     capacidad_kw: float = 0.0
     activa_operativa: bool = True
 
-    def esta_disponible(self) -> bool:
-        return self.estado == "activa"
+    # def esta_disponible(self) -> bool:
+    #     return self.estado == "activa"
     
 ############ EVENTOS ############
 
