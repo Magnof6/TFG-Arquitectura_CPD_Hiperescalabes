@@ -87,22 +87,21 @@ export function ScenarioEditorPage() {
     )
 
     const filteredComponents = useMemo(() => {
-        return components.filter((component) => {
+    return components
+        .filter((component) => component.type !== 'SalaIT' && component.type !== 'ZonaIT')
+        .filter((component) => {
             if (eventType === 'ParadaGenerador') {
                 return component.type === 'Generador'
             }
-
             if (eventType === 'ConmutacionFuente') {
                 return component.type === 'UPS' || component.type === 'STS'
             }
-
             if (eventType === 'SalidaReserva') {
                 return component.is_reserve
             }
-
             return true
         })
-    }, [components, eventType])
+}, [components, eventType])
 
     useEffect(() => {
         if (filteredComponents.length === 0) {
