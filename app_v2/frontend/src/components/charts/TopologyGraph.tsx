@@ -26,6 +26,7 @@ type TopologyNode = {
     fuente_actual?: string | null
     fuente_preferida?: string | null
     fuente_respaldo?: string | null
+    transferencia_bloqueada?: boolean | null
 }
 
 type TopologyEdge = {
@@ -49,6 +50,7 @@ type SnapshotComponent = {
     fuente_actual?: string | null
     fuente_preferida?: string | null
     fuente_respaldo?: string | null
+    transferencia_bloqueada?: boolean | null
 }
 
 type SnapshotTopology = {
@@ -89,10 +91,14 @@ function getStatusLabel(node: TopologyNode): string {
         if (status === "sin_alimentacion") return "Sin alimentación"
     }
 
-    if (node.id.startsWith("ups_") && node.id.endsWith("_b")) {
-        if (status === "activo" || status === "operativo") {
-            return "Respaldo disponible"
+    if (node.id.startsWith("ups_")) {
+        if (node.transferencia_bloqueada) return "Transferencia bloqueada"
+        if (node.en_bateria) return "Alimentando (batería)"
+        if (node.alimentando_zona) return "Alimentando"
+        if (node.id.endsWith("_b")) {
+            if (status === "activo" || status === "operativo") return "Respaldo disponible"
         }
+        
     }
 
     switch (status) {
@@ -160,13 +166,9 @@ function getNodeColor(node: TopologyNode): string {
         return "#3b82f6"
     }
 
-    if (
-        node.id.startsWith("ups_") &&
-        node.id.endsWith("_b") &&
-        (status === "activo" || status === "operativo")
-    ) {
-        return "#3b82f6"
-    }
+    if (node.id.startsWith("ups_") && node.transferencia_bloqueada) {
+    return "#f59e0b" // naranja: no ha podido asumir la transferencia
+}
 
     if (
         status === "activo" ||
