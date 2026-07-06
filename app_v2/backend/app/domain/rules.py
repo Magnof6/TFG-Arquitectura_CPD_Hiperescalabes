@@ -115,6 +115,8 @@ class MotorReglas:
             if hasattr(nodo, "estado") and nodo.__class__.__name__ not in {"SalaIT", "ZonaIT"}:
                 if getattr(nodo, "estado", None) in {"fallado", "mantenimiento", "desconectado"}:
                     return False
+                if getattr(nodo, "transferencia_bloqueada", False):
+                    return False
 
         for i in range(len(ruta) - 1):
             conexion = self.topologia.obtener_conexion(ruta[i], ruta[i + 1])

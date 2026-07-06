@@ -16,7 +16,7 @@ def build_topology_response(topologia):
             TopologyNodeResponse(
                 id=nodo.id,
                 label=getattr(nodo, "nombre", nodo.id),
-                type=getattr(nodo, "tipo", "unknown"),
+                type=type(nodo).__name__,
                 status=getattr(nodo, "estado", None),
                 criticality=getattr(nodo, "criticidad", None),
                 is_reserve=getattr(nodo, "es_reserva", None),

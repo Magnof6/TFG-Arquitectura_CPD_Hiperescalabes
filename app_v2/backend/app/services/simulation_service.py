@@ -113,6 +113,7 @@ def build_component_response(component):
         "fuente_actual": getattr(component, "fuente_actual", None),
         "fuente_preferida": getattr(component, "fuente_preferida", None),
         "fuente_respaldo": getattr(component, "fuente_respaldo", None),
+        "transferencia_bloqueada": getattr(component, "transferencia_bloqueada", None),
     }
 
     excluded = set(common_fields.keys())
