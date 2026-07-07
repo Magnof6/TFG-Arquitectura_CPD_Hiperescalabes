@@ -38,7 +38,6 @@ class EstadoSimulacion:
     componentes: Dict[str, object]
     salas_it: Dict[str, object]
     zonas_it: Dict[str, object]
-    cargas_it: Dict[str, object]
 
     topologia: object
     grupos_redundancia: Dict[str, object]
