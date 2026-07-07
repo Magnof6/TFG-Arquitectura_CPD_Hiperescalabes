@@ -4,9 +4,6 @@ export interface ScenarioResponse {
     name: string
 }
 
-export interface SimulationRunRequest {
-    scenario_id: string
-}
 
 export interface SimulationKpiResponse {
     estado_global_final: string
