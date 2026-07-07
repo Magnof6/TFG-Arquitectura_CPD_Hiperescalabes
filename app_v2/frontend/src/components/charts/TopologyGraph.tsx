@@ -27,6 +27,7 @@ type TopologyNode = {
     fuente_preferida?: string | null
     fuente_respaldo?: string | null
     transferencia_bloqueada?: boolean | null
+    enRutaActiva?: boolean
 }
 
 type TopologyEdge = {
@@ -51,6 +52,7 @@ type SnapshotComponent = {
     fuente_preferida?: string | null
     fuente_respaldo?: string | null
     transferencia_bloqueada?: boolean | null
+    enRutaActiva?: boolean
 }
 
 type SnapshotTopology = {
@@ -95,10 +97,10 @@ function getStatusLabel(node: TopologyNode): string {
         if (node.transferencia_bloqueada) return "Transferencia bloqueada"
         if (node.en_bateria) return "Alimentando (batería)"
         if (node.alimentando_zona) return "Alimentando"
-        if (node.id.endsWith("_b")) {
+        if (node.id.endsWith("_b") && !node.enRutaActiva) {
             if (status === "activo" || status === "operativo") return "Respaldo disponible"
         }
-        
+
     }
 
     switch (status) {
@@ -167,8 +169,17 @@ function getNodeColor(node: TopologyNode): string {
     }
 
     if (node.id.startsWith("ups_") && node.transferencia_bloqueada) {
-    return "#f59e0b" // naranja: no ha podido asumir la transferencia
-}
+        return "#f59e0b" // naranja: no ha podido asumir la transferencia
+
+    }
+    if (
+        node.id.startsWith("ups_") &&
+        node.id.endsWith("_b") &&
+        (status === "activo" || status === "operativo")&&
+        !node.enRutaActiva
+    ) {
+        return "#3b82f6" // azul: respaldo en reposo, todavía no ha entrado en servicio
+    }
 
     if (
         status === "activo" ||
@@ -340,6 +351,8 @@ function mergeSnapshotState(
 
             fuente_respaldo:
                 snapshotComponent.fuente_respaldo ?? node.fuente_respaldo,
+            transferencia_bloqueada:
+                snapshotComponent.transferencia_bloqueada ?? node.transferencia_bloqueada,
         }
     })
 }
@@ -610,13 +623,28 @@ export default function TopologyGraph({ topology, snapshot }: TopologyProps) {
     )
     const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null)
 
-    const nodes = buildFlowNodes(topologyNodesForSnapshot)
 
     const activeEdges = useMemo(
         () => new Set(snapshot?.active_edges ?? []),
         [snapshot?.active_edges]
     )
+    const poweredNodeIds = useMemo(() => {
+        const powered = new Set<string>()
+        for (const edge of topology.edges) {
+            if (activeEdges.has(edge.id)) {
+                powered.add(edge.source)
+                powered.add(edge.target)
+            }
+        }
+        return powered
+    }, [topology.edges, activeEdges])
 
+    const topologyNodesWithPower = topologyNodesForSnapshot.map((node) => ({
+        ...node,
+        enRutaActiva: poweredNodeIds.has(node.id),
+    }))
+
+    const nodes = buildFlowNodes(topologyNodesWithPower)
     const highlightedEdges = useMemo(() => {
         if (!hoveredEdgeId) {
             return new Set<string>()

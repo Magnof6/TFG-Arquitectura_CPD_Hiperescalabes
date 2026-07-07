@@ -15,7 +15,6 @@ from app.domain.models import (
 )
 from app.simulation.events import ProcesadorEventos
 
-
 @dataclass(order=True)
 class EventoProgramado:
     """
@@ -269,6 +268,8 @@ class MotorSimulacion:
     # -----------------------------------------------------------------
 
     def registrar_snapshot(self, motivo: str = "") -> None:
+        from app.services.simulation_service import build_component_response #Si lo pongo arriba, da error de importación circular
+
         snapshot = SnapshotSistema(
             tiempo_s=self.estado.tiempo_actual_s,
             estado_global=self.estado.estado_global,
@@ -282,22 +283,7 @@ class MotorSimulacion:
             num_salas_degradadas=self._num_salas_degradadas(),
             num_salas_sin_servicio=self._num_salas_sin_servicio(),
             components=[
-                {
-                    "id": getattr(component, "id", ""),
-                    "nombre": getattr(component, "nombre", ""),
-                    "tipo": getattr(component, "tipo", component.__class__.__name__),
-                    "estado": getattr(component, "estado", ""),
-                    "criticidad": getattr(component, "criticidad", None),
-                    "es_reserva": getattr(component, "es_reserva", None),
-                    "capacidad_kw": getattr(component, "capacidad_kw", None),
-                    "en_bateria": getattr(component, "en_bateria", None),
-                    "alimentando_zona": getattr(component, "alimentando_zona", None),
-                    "bateria_agotada": getattr(component, "bateria_agotada", None),
-                    "fuente_actual": getattr(component, "fuente_actual", None),
-                    "fuente_preferida": getattr(component, "fuente_preferida", None),
-                    "fuente_respaldo": getattr(component, "fuente_respaldo", None),
-                    "specific": {},
-                }
+                build_component_response(component)
                 for component in (
                     list(self.estado.componentes.values())
                     + list(self.estado.salas_it.values())

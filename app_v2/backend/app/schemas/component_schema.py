@@ -17,4 +17,5 @@ class ComponentResponse(BaseModel):
     fuente_actual: Optional[str] = None
     fuente_preferida: Optional[str] = None
     fuente_respaldo: Optional[str] = None
+    transferencia_bloqueada: Optional[bool] = None
     specific: dict[str, Any] = {}  # Para campos específicos de cada tipo de componente
